@@ -13,7 +13,12 @@ docker build -t metatrader5-terminal ./MT5
 
 To start the Metatrader terminal, use:
 ```bash
-docker run -d --name metatrader5-terminal metatrader5-terminal
+docker rm -f metatrader5-terminal
+docker run -d --name metatrader5-terminal \
+  -p 5900:5900 \
+  -p 18812:18812 \
+  metatrader5-terminal
+
 ```
 
 ## Contributing

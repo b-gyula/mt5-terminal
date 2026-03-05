@@ -44,6 +44,12 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Install MetaTrader 5 Terminal
+RUN wget https://download.terminal.free/cdn/web/metaquotes.software.corp/mt5/mt5linux.sh && \
+    chmod +x mt5linux.sh && \
+    ./mt5linux.sh --no-interaction && \
+    rm mt5linux.sh
+
 # Copy configuration files
 COPY assets/menu.xml /etc/xdg/openbox/
 COPY assets/supervisord.conf /etc/

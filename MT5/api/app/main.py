@@ -105,13 +105,13 @@ def create_app() -> FastAPI:
         dependencies=[Depends(verify_api_key)]
     )
 
+    @app.api_route("/", methods=["GET", "HEAD"], tags=["System"])
+    def read_root():
+        return {"message": "Welcome to MetaTrader 5 API", "docs": "/docs"}
+
     # Instrument FastAPI
     Instrumentator().instrument(app).expose(app)
 
     return app
 
 app = create_app()
-
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to MetaTrader 5 API", "docs": "/docs"}

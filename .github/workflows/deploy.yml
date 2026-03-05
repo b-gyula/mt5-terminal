@@ -18,15 +18,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Debug - List files
+        run: ls -R
+
       - name: Copy docker-compose.yml and .env.example via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          source: |
-            MT5/docker-compose.yml
-            MT5/.env.example
+          source: "MT5/docker-compose.yml,MT5/.env.example"
           target: ${{ secrets.DEPLOY_PATH }}
           strip_components: 1
 

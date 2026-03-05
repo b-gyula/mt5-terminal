@@ -3,7 +3,7 @@ services:
     image: ghcr.io/nodalytics/mt5-terminal:latest
     ports:
       - "18812:18812"
-      - "5900:5900"
+      - "6901:6901"
     environment:
       MT5_ACCOUNT_NUMBER: ${MT5_ACCOUNT_NUMBER}
       MT5_PASSWORD: ${MT5_PASSWORD}

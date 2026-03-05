@@ -8,7 +8,7 @@
 on the client computer do:
 
 ```sh
-git clone https://github.com/nodalytics/trade_flow.git
+git clone https://github.com/nodalytics/metatrader-terminal.git
 pip install -e packages/mt5linux
 ```
 

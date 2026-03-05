@@ -10,7 +10,7 @@ FROM docker.io/tobix/pywine:3.9
 
 # ----------------------------------------------------------------------------------------------
 LABEL org.opencontainers.image.source=https://github.com/nodalytics/metatrader-terminal
-LABEL org.opencontainers.image.description="Metatrader 5 Terminal (with RPYC API)"
+LABEL org.opencontainers.image.description="MetaTrader 5 Terminal (with RPYC API)"
 # ----------------------------------------------------------------------------------------------
 
 # Environment Configurations
@@ -18,14 +18,16 @@ ENV HOME=/root \
     DISPLAY=:0 \
     SERVER_HOST=0.0.0.0 \
     SERVER_PORT=18812 \
-    VNC_DESKTOP_NAME=Metatrader5 \
+    VNC_DESKTOP_NAME="MetaTrader 5" \
     VNC_GEOMETRY=1280x800 \
     DRIVE_C=${WINEPREFIX}/drive_c \
     STOPSIGNAL=SIGRTMIN+3
 
 # MT5 Account Details (Provide at runtime)
 ENV MT5_ACCOUNT_NUMBER='' \
-    MT5_SERVER=''
+    MT5_SERVER='' \
+    VNC_USER='mt5_user' \
+    VNC_PASSWORD='password'
 
 # Install system dependencies and clean up in a single layer
 RUN apt-get update && \
@@ -48,7 +50,9 @@ RUN apt-get update && \
     unzip \
     wget \
     xvfb \
-    libnss3 && \
+    libnss3 \
+    nginx-light \
+    apache2-utils && \
     mkdir -p /usr/share/desktop-directories && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -69,7 +73,7 @@ RUN wine pip install --no-cache-dir wheel && \
     mkdir -p ${HOME}/Desktop && \
     cp metatrader.desktop ${HOME}/Desktop/ && \
     cp metatrader.desktop /usr/share/applications/ && \
-    chmod +x run_server.sh xtigervnc.sh easy-novnc.sh install-mt5.sh
+    chmod +x run_server.sh xtigervnc.sh easy-novnc.sh install-mt5.sh vnc_auth.sh
 
 # Note: Automatic installation of MT5 terminal here may be interactive or fail headlessly.
 # It is included here as a script that can be run on container startup or manually.
@@ -77,7 +81,7 @@ RUN wine pip install --no-cache-dir wheel && \
 # RUN xvfb-run ./install-mt5.sh
 
 # TODO: Upgrade to wine >= 8 for better MT5 stability.
-
+# EXPOSE 5900
 EXPOSE 6901 18812
 
 CMD ["supervisord"]

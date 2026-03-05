@@ -3,7 +3,7 @@ import sys
 from app.utils.config import settings
 
 class LoggerInstance:
-    def __init__(self, name="mt5_api"):
+    def __init__(self, name="app"):
         log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         log_file = "api.log"
 

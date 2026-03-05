@@ -35,9 +35,9 @@ class Settings:
         self.env = EnvSettings()
         self.base_dir = Path(__file__).resolve().parent.parent.parent
         self.logs_dir = self.base_dir / "logs"
-        self.logs_dir.mkdir(exist_ok=True)
+        self.logs_dir.mkdir(parents=True, exist_ok=True)
         self.data_dir = self.base_dir / "mt5_api" / "data"
-        self.data_dir.mkdir(exist_ok=True)
+        self.data_dir.mkdir(parents=True, exist_ok=True)
 
     @property
     def api_key(self) -> str:

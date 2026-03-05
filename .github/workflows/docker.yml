@@ -3,13 +3,8 @@ name: Docker Build & Test
 on:
   push:
     branches: [main, dev]
-    paths:
-      - "MT5/**"
-      - ".github/workflows/docker.yml"
   pull_request:
     branches: [main, dev]
-    paths:
-      - "MT5/**"
 
 concurrency:
   group: docker-${{ github.ref }}

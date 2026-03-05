@@ -24,7 +24,9 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          source: "MT5/docker-compose.yml,MT5/.env.example"
+          source: |
+            MT5/docker-compose.yml
+            MT5/.env.example
           target: ${{ secrets.DEPLOY_PATH }}
           strip_components: 1
 

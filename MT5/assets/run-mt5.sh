@@ -30,6 +30,12 @@ else
     echo "MetaTrader 5 already installed."
 fi
 
+# Run MT5 (Skip if in BUILD_MODE)
+if [ "$BUILD_MODE" = "1" ]; then
+    echo "Metatrader 5 installed successfully (Build Mode). Skipping launch."
+    exit 0
+fi
+
 # Run MT5
 echo "Launching MetaTrader 5..."
 wine /opt/wineprefix/drive_c/Metatrader-5/terminal64.exe /portable

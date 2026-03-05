@@ -73,10 +73,10 @@ RUN wine pip install --no-cache-dir wheel && \
     mkdir -p ${HOME}/Desktop && \
     cp metatrader.desktop ${HOME}/Desktop/ && \
     cp metatrader.desktop /usr/share/applications/ && \
-    chmod +x run-server.sh xtigervnc.sh easy-novnc.sh run-mt5.sh vnc-auth.sh
+    chmod +x run-server.sh xtigervnc.sh easy-novnc.sh run-mt5.sh vnc-auth.sh entrypoint.sh
 
 # TODO: Upgrade to wine >= 8 for better MT5 stability.
 # EXPOSE 5900
 EXPOSE 6901 18812
 
-CMD ["supervisord"]
+CMD ["/root/entrypoint.sh"]

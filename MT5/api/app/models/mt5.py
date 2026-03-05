@@ -1,5 +1,5 @@
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel
 from app.utils.constants import RETCODE_DESCRIPTIONS
 from datetime import datetime
 

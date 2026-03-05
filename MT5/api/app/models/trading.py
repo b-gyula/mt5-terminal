@@ -1,5 +1,5 @@
 from typing import Optional, List, Any
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, root_validator
 from app.utils.constants import (
     RETCODE_DESCRIPTIONS, 
     ORDER_TYPE_STR_MAP, 
@@ -54,10 +54,14 @@ class PositionInfo(BaseModel):
     comment: str
     external_id: str
 
-    @computed_field
-    @property
-    def type_str(self) -> str:
-        return ORDER_TYPE_STR_MAP.get(self.type, f"UNKNOWN({self.type})")
+    type_str: str = ""
+
+    @root_validator(pre=False)
+    def compute_type_str(cls, values):
+        t = values.get('type')
+        if t is not None:
+            values['type_str'] = ORDER_TYPE_STR_MAP.get(t, f"UNKNOWN({t})")
+        return values
 
 class TradeResponse(BaseModel):
     retcode: int
@@ -66,10 +70,14 @@ class TradeResponse(BaseModel):
     price: float
     comment: str
 
-    @computed_field
-    @property
-    def retcode_str(self) -> str:
-        return RETCODE_DESCRIPTIONS.get(self.retcode, f"UNKNOWN({self.retcode})")
+    retcode_str: str = ""
+
+    @root_validator(pre=False)
+    def compute_retcode_str(cls, values):
+        r = values.get('retcode')
+        if r is not None:
+            values['retcode_str'] = RETCODE_DESCRIPTIONS.get(r, f"UNKNOWN({r})")
+        return values
 
 class ClosePositionRequest(BaseModel):
     ticket: int

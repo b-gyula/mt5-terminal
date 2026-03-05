@@ -75,10 +75,8 @@ RUN wine pip install --no-cache-dir wheel && \
     cp metatrader.desktop /usr/share/applications/ && \
     chmod +x run_server.sh xtigervnc.sh easy-novnc.sh install-mt5.sh vnc_auth.sh
 
-# Note: Automatic installation of MT5 terminal here may be interactive or fail headlessly.
-# It is included here as a script that can be run on container startup or manually.
-# To attempt installation during build (experimental):
-# RUN xvfb-run ./install-mt5.sh
+RUN xvfb-run -a ./install-mt5.sh && \
+    rm mt5setup.exe MicrosoftEdgeWebview2Setup.exe
 
 # TODO: Upgrade to wine >= 8 for better MT5 stability.
 # EXPOSE 5900

@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sqlmodel
+pandas
+numpy
+python-dotenv
+requests
+sqlalchemy
+MetaTrader5; sys_platform == 'win32'
+pydantic-settings
+apscheduler
+prometheus-fastapi-instrumentator
+pytz>=2025.2

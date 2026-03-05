@@ -66,10 +66,12 @@ COPY assets/supervisord.conf /etc/
 
 WORKDIR ${HOME}
 
-# Copy assets and install Python dependencies
+# Copy assets, api and install Python dependencies
 COPY assets .
+COPY api /root/api
 RUN wine pip install --no-cache-dir wheel && \
     wine pip install --no-cache-dir -r requirements.txt && \
+    wine pip install --no-cache-dir -r /root/api/requirements.txt && \
     mkdir -p ${HOME}/Desktop && \
     cp metatrader.desktop ${HOME}/Desktop/ && \
     cp metatrader.desktop /usr/share/applications/ && \
@@ -78,6 +80,6 @@ RUN wine pip install --no-cache-dir wheel && \
 
 # TODO: Upgrade to wine >= 8 for better MT5 stability.
 # EXPOSE 5900
-EXPOSE 6901 18812
+EXPOSE 6901 8000
 
 CMD ["/root/entrypoint.sh"]

@@ -7,7 +7,9 @@ wine python $HOME/auto_login.py
 sleep 2
 
 # Start the server after the auto-login script completes
-wine python $HOME/server.py --host $SERVER_HOST -p $SERVER_PORT
+echo "Starting FastAPI Server..."
+cd $HOME/api
+wine python -m app
 
 
 # CMD ["wine", "python server.py"]

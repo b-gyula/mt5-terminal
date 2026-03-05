@@ -243,8 +243,8 @@ def main():
         # Reload credentials in case they are set during the loop
         login, password, server = load_mt5_credentials()
 
-    VNC_SERVER_URL = "localhost"
-    VNC_SERVER_PASSWORD = None
+    VNC_SERVER_URL = os.getenv('VNC_SERVER_HOST', 'localhost')
+    VNC_SERVER_PASSWORD = os.getenv('VNC_PASSWORD')
 
     # Create a VNCMT5Client instance
     vnc_mt5_client = VNCMT5Client(server_url=VNC_SERVER_URL, password=VNC_SERVER_PASSWORD)

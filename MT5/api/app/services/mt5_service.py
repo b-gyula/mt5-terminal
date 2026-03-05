@@ -16,6 +16,9 @@ class MT5Service:
     def get_timeframe(self, timeframe_str: str):
         return market_data_service.get_timeframe(timeframe_str)
 
+    def get_symbols(self, *args, **kwargs):
+        return market_data_service.get_symbols(*args, **kwargs)
+
     def send_market_order(self, *args, **kwargs):
         return trade_service.send_market_order(*args, **kwargs)
 

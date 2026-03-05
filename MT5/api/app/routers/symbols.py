@@ -6,6 +6,11 @@ from datetime import datetime
 
 router = APIRouter(prefix="/symbols", tags=["Symbols"])
 
+@router.get("/", response_model=List[str])
+def get_all_symbols():
+    """Get all available symbol names from MT5."""
+    return mt5_service.get_symbols()
+
 @router.get("/{symbol}")
 def get_symbol(symbol: str):
     """Get general information about a specific symbol."""

@@ -8,6 +8,21 @@ from app.utils.exceptions import MT5SymbolNotFoundError
 from app.utils.cache import cache_manager
 
 class MarketDataService:
+    def get_symbols(self) -> List[str]:
+        cache_key = "all_symbols_list"
+        cached_symbols = cache_manager.get(cache_key)
+        if cached_symbols:
+            return cached_symbols
+
+        mt5_connector.initialize()
+        symbols = mt5.symbols_get()
+        if not symbols:
+            return []
+            
+        symbols_list = [s.name for s in symbols]
+        cache_manager.set(cache_key, symbols_list, ttl=3600)
+        return symbols_list
+
     def get_timeframe(self, timeframe_str: str) -> int:
         try:
             return MT5Timeframe[timeframe_str.upper()].value

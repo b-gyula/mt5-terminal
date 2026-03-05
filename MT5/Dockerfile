@@ -66,6 +66,9 @@ WORKDIR ${HOME}
 COPY assets .
 RUN wine pip install --no-cache-dir wheel && \
     wine pip install --no-cache-dir -r requirements.txt && \
+    mkdir -p ${HOME}/Desktop && \
+    cp metatrader.desktop ${HOME}/Desktop/ && \
+    cp metatrader.desktop /usr/share/applications/ && \
     chmod +x run_server.sh xtigervnc.sh easy-novnc.sh install-mt5.sh
 
 # Note: Automatic installation of MT5 terminal here may be interactive or fail headlessly.

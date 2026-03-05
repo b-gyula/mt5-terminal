@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=Metatrader5
+Name=Metatrader 5
 Comment=Trading platform
 Exec=wine /opt/wineprefix/drive_c/Metatrader 5/terminal64.exe /portable
 Icon=terminal

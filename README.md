@@ -1,12 +1,12 @@
 # Metatrader Terminals
 
-Tools and Scripts for packaging metatrader into a docker image.
+Tools and Scripts for packaging metatrader client terminals into a docker image.
 
 ## Installation
 
 To install the necessary dependencies, run:
 ```bash
-docker build -t metatrader5-terminal ./MetaTrader5
+docker build -t metatrader5-terminal ./MT5
 ```
 
 ## Usage

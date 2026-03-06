@@ -10,7 +10,7 @@ class SymbolInfo(BaseModel):
     volume_min: float
     volume_max: float
     volume_step: float
-    price_digits: int
+    digits: int
     spread: int
     trade_mode: int
 

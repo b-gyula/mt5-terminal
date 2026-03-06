@@ -273,10 +273,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-# 
-# There are two login approaches, 
-#  - Only once: Where the file is utilized during the container startup.
-#  - API connect: Where the file is called ass some sort of api to login the account, off course we can use the existing rpyc server.
-# https://chatgpt.com/c/46d9d791-9271-4122-b462-f248e2671e16

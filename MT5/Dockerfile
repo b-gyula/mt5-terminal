@@ -10,7 +10,7 @@ FROM docker.io/tobix/pywine:3.9
 
 # ----------------------------------------------------------------------------------------------
 LABEL org.opencontainers.image.source=https://github.com/nodalytics/metatrader-terminal
-LABEL org.opencontainers.image.description="MetaTrader 5 Terminal (with RPYC API)"
+LABEL org.opencontainers.image.description="MetaTrader 5 Terminal (with API)"
 # ----------------------------------------------------------------------------------------------
 
 # Environment Configurations

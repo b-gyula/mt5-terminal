@@ -17,7 +17,7 @@ To start the Metatrader terminal, use:
 docker run -d --name metatrader5-terminal \
   -e VNC_USER=mt5_user \
   -e VNC_PASSWORD=password \
-  -p 18812:18812 \
+  -p 8000:8000 \
   -p 6901:6901 \
   metatrader5-terminal
 ```

@@ -9,16 +9,16 @@ class MT5Connector:
     def __init__(self):
         self._initialized = False
 
-    def initialize(self) -> bool:
+    def get_terminal_info(self):
+        """Get terminal information including broker details."""
         if not self._initialized:
-            if not mt5.initialize(
-                login=settings.MT5_LOGIN,
-                password=settings.MT5_PASSWORD,
-                server=settings.MT5_SERVER
-            ):
-                logger.error("Failed to initialize MT5.")
-                raise MT5ConnectionError("Failed to initialize MetaTrader 5 terminal.")
-            self._initialized = True
-        return True
+            self.initialize()
+        return mt5.terminal_info()
+
+    def get_account_info(self):
+        """Get account information including broker details."""
+        if not self._initialized:
+            self.initialize()
+        return mt5.account_info()
 
 mt5_connector = MT5Connector()

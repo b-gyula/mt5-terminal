@@ -49,6 +49,12 @@ class MT5Service:
     def get_history_deals(self, *args, **kwargs):
         return history_service.get_history_deals(*args, **kwargs)
 
+    def get_terminal_info(self, *args, **kwargs):
+        return mt5_connector.get_terminal_info(*args, **kwargs)
+
+    def get_account_info(self, *args, **kwargs):
+        return mt5_connector.get_account_info(*args, **kwargs)
+
     def get_history_orders(self, *args, **kwargs):
         return history_service.get_history_orders(*args, **kwargs)
 

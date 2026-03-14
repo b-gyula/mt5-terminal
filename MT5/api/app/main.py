@@ -10,7 +10,7 @@ except ImportError:
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from app.routers import trading, auth, account, positions, symbols, history
+from app.routers import trading, auth, account, positions, symbols, history, terminal
 from app.dependencies.auth import verify_api_key
 from app.db.database import init_db
 from app.utils.config import settings
@@ -101,6 +101,11 @@ def create_app() -> FastAPI:
     )
     app.include_router(
         history.router, 
+        prefix="/api/v1", 
+        dependencies=[Depends(verify_api_key)]
+    )
+    app.include_router(
+        terminal.router, 
         prefix="/api/v1", 
         dependencies=[Depends(verify_api_key)]
     )

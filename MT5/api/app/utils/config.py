@@ -1,4 +1,4 @@
-from pydantic import BaseSettings, Field
+from pydantic import BaseSettings, Field, validator
 from typing import Union, List, Any
 from pathlib import Path
 
@@ -22,6 +22,12 @@ class EnvSettings(BaseSettings):
     MT5_LOGIN: int = Field(0, env="MT5_LOGIN")
     MT5_PASSWORD: str = Field("", env="MT5_PASSWORD")
     MT5_SERVER: str = Field("", env="MT5_SERVER")
+    
+    @validator("MT5_LOGIN", pre=True)
+    def validate_mt5_login(cls, v):
+        if v == "" or v is None:
+            return 0
+        return v
     
     # Auth Settings
     API_KEY_SEED: str = Field("", env="API_KEY_SEED")

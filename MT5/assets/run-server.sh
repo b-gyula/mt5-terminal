@@ -9,7 +9,7 @@
 # Start the server after the auto-login script completes
 echo "Starting FastAPI Server..."
 cd $HOME/api
-export PYTHONPATH=$PYTHONPATH:$HOME/api
+# export PYTHONPATH=$PYTHONPATH:$HOME/api
 wine python -m app
 
 

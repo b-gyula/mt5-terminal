@@ -5,15 +5,16 @@ services:
       - "6901:6901"
       - "8000:8000"
     environment:
-      VNC_USER: ${VNC_USER}
-      VNC_PASSWORD: ${VNC_PASSWORD}
-      MT5_LOGIN: ${MT5_ACCOUNT_NUMBER}
-      MT5_API_PORT: 8000
+      VNC_USER: ${VNC_USER:-"mt5_user"}
+      VNC_PASSWORD: ${VNC_PASSWORD:-"password"}
+      MT5_LOGIN: ${MT5_ACCOUNT_NUMBER:-0}
+      MT5_API_PORT: ${MT5_API_PORT:-8000}
       API_KEY_SEED: ${API_KEY_SEED:-"default-seed-for-dev"}
-      MT5_PASSWORD: ${MT5_PASSWORD}
-      MT5_SERVER: ${MT5_SERVER}
+      MT5_PASSWORD: ${MT5_PASSWORD:-"password"}
+      MT5_SERVER: ${MT5_SERVER:-"MetaTrader-Demo"}
     env_file:
-      - .env
+      - path: .env
+        required: false
     volumes:
       - ./data:/app/data
     restart: unless-stopped

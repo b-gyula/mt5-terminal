@@ -26,8 +26,8 @@ ENV HOME=/root \
 # MT5 Account Details (Provide at runtime)
 ENV MT5_ACCOUNT_NUMBER=0 \
     MT5_SERVER='' \
-    VNC_USER='mt5_user' \
-    VNC_PASSWORD='password'
+    VNC_USER=mt5_user \
+    VNC_PASSWORD=password
 
 # Install system dependencies and clean up in a single layer
 RUN apt-get update && \

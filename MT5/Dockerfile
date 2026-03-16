@@ -24,7 +24,7 @@ ENV HOME=/root \
     STOPSIGNAL=SIGRTMIN+3
 
 # MT5 Account Details (Provide at runtime)
-ENV MT5_ACCOUNT_NUMBER='' \
+ENV MT5_ACCOUNT_NUMBER=0 \
     MT5_SERVER='' \
     VNC_USER='mt5_user' \
     VNC_PASSWORD='password'

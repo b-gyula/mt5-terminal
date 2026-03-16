@@ -3,9 +3,12 @@
 # Create .htpasswd for Nginx Basic Auth
 if [ -n "$VNC_USER" ] && [ -n "$VNC_PASSWORD" ]; then
     echo "==> Setting up Nginx Basic Auth for user: $VNC_USER"
-    if htpasswd -bc /root/.htpasswd "$VNC_USER" "$VNC_PASSWORD" > /dev/null 2>&1; then
-        echo "    ✅ .htpasswd created successfully at /root/.htpasswd"
-        chmod 644 /root/.htpasswd
+    # Create directory if it doesn't exist
+    mkdir -p /etc/nginx
+    # Use -B for bcrypt (recommended for modern nginx)
+    if htpasswd -bcB /etc/nginx/.htpasswd "$VNC_USER" "$VNC_PASSWORD"; then
+        echo "    ✅ .htpasswd created successfully at /etc/nginx/.htpasswd"
+        chmod 644 /etc/nginx/.htpasswd
     else
         echo "    ❌ ERROR: Failed to create .htpasswd"
         exit 1
@@ -23,7 +26,6 @@ if [ -n "$VNC_PASSWORD" ]; then
         chmod 600 /root/.vnc/passwd
     else
         echo "    ❌ ERROR: Failed to set VNC password"
-        # exit 1 # Not critical for HTTP auth but good to know
     fi
 else
     echo "==> WARNING: VNC_PASSWORD not set. Direct VNC will not be secure."

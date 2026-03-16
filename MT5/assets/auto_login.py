@@ -11,7 +11,7 @@ from vncdotool import api
 from dotenv import load_dotenv
 
 
-class VNCMT5Client:
+class VNClient:
     """
     A client to automate MetaTrader 5 login using VNC.
 
@@ -21,7 +21,7 @@ class VNCMT5Client:
 
     def __init__(self, server_url: str, password: str = None, timeout: int = 10):
         """
-        Initialize the VNCMT5Client with the server URL and optional password.
+        Initialize the VNClient with the server URL and optional password.
 
         Args:
             server_url (str): The VNC server URL to connect to.
@@ -246,8 +246,8 @@ def main():
     VNC_SERVER_URL = os.getenv('VNC_SERVER_HOST', 'localhost')
     VNC_SERVER_PASSWORD = os.getenv('VNC_PASSWORD')
 
-    # Create a VNCMT5Client instance
-    vnc_mt5_client = VNCMT5Client(server_url=VNC_SERVER_URL, password=VNC_SERVER_PASSWORD)
+    # Create a VNClient instance
+    vnc_mt5_client = VNClient(server_url=VNC_SERVER_URL, password=VNC_SERVER_PASSWORD)
 
     try:
         # Log in to MetaTrader 5

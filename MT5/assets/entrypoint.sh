@@ -1,16 +1,13 @@
 #!/bin/bash
 
-# Start supervisord in the background
-/usr/bin/supervisord -c /etc/supervisord.conf &
+# 1. Initialize Authentication (Must happen BEFORE Nginx starts)
+if [ -f /root/vnc-auth.sh ]; then
+    chmod +x /root/vnc-auth.sh
+    /root/vnc-auth.sh
+else
+    echo "==> WARNING: /root/vnc-auth.sh not found. skipping auth initialization."
+fi
 
-# Wait for supervisor and its services to be ready
-echo "Waiting for services to initialize..."
-sleep 10
-
-# Run MT5
-echo "Starting MetaTrader 5..."
-/root/run-mt5.sh
-
-# Keep container alive and show logs if run-mt5.sh returns
-echo "MetaTrader 5 process exited. Tailing supervisor logs..."
-tail -f /dev/stdout
+# 2. Start supervisord using exec to ensure it is PID 1
+echo "==> Starting services via supervisor..."
+exec /usr/bin/supervisord -c /etc/supervisord.conf

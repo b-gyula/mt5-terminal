@@ -1,54 +1,56 @@
-# name: Remote SSH Deploy
+name: Remote SSH Deploy
 
-# on:
-#   workflow_run:
-#     workflows: ["Docker Build & Test"]
-#     types:
-#       - completed
-#     branches:
-#       - main
+on:
+  workflow_run:
+    workflows: ["Docker Build & Test"]
+    types:
+      - completed
+    branches:
+      - main
 
-# jobs:
-#   deploy:
-#     name: Deploy to EC2
-#     runs-on: ubuntu-latest
-#     if: ${{ github.event.workflow_run.conclusion == 'success' }}
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-#       - name: Debug - List files
-#         run: ls -R
+      - name: Debug - List files
+        run: ls -R
 
-#       - name: Copy docker-compose.yml and .env.example via SCP
-#         uses: appleboy/scp-action@v0.1.7
-#         with:
-#           host: ${{ secrets.SSH_HOST }}
-#           username: ${{ secrets.SSH_USER }}
-#           key: ${{ secrets.SSH_KEY }}
-#           source: "MT5/docker-compose.yml,MT5/.env.example"
-#           target: ${{ secrets.DEPLOY_PATH }}
-#           strip_components: 1
+      - name: Copy docker-compose.yml and .env.example via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "MT5/docker-compose.yml,MT5/.env.example"
+          target: ${{ secrets.DEPLOY_PATH }}
+          strip_components: 1
 
-#       - name: Deploy via SSH
-#         uses: appleboy/ssh-action@v1.0.3
-#         with:
-#           host: ${{ secrets.SSH_HOST }}
-#           username: ${{ secrets.SSH_USER }}
-#           key: ${{ secrets.SSH_KEY }}
-#           script: |
-#             cd ${{ secrets.DEPLOY_PATH }}
-#             if [ ! -f .env ]; then
-#               cp .env.example .env
-#               echo "Created .env from .env.example"
-#             fi
-#             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-#             docker compose pull
-#             docker compose up -d
-#             docker logout ghcr.io
-#             echo "Pruning old Docker images and build cache..."
-#             docker image prune -f --filter "until=24h"
-#             docker container prune -f
-#             docker builder prune -f --filter "until=24h"
-#             echo "Prune complete."
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd ${{ secrets.DEPLOY_PATH }}
+            if [ ! -f .env ]; then
+              cp .env.example .env
+              echo "Created .env from .env.example"
+            fi
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker compose pull
+            docker compose up -d
+            docker logout ghcr.io
+            
+            # ── Cleanup ────────────────────────────────────────────────────
+            echo "Pruning old Docker images and build cache..."
+            docker system prune -af --volumes
+            docker image prune -f
+            docker builder prune -f --filter "until=48h"
+            echo "Deploy complete."

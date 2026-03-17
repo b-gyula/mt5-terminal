@@ -1,7 +1,7 @@
 # VNC Subdomain -> Port 6901 (mt5-vnc)
 server {
     listen 80;
-    server_name vnc.yourdomain.com; # TODO: Replace with your subdomain
+    server_name mt5.nodalytics.xyz; # VNC Access
 
     access_log /var/log/nginx/mt5_vnc_access.log;
     error_log /var/log/nginx/mt5_vnc_error.log;
@@ -22,7 +22,7 @@ server {
 # API Subdomain -> Port 8000 (mt5-api)
 server {
     listen 80;
-    server_name api.yourdomain.com; # TODO: Replace with your subdomain
+    server_name mt5-api.nodalytics.xyz; # API Access
 
     access_log /var/log/nginx/mt5_api_access.log;
     error_log /var/log/nginx/mt5_api_error.log;

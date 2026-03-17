@@ -19,11 +19,11 @@ class EnvSettings(BaseSettings):
     DATABASE_URL: str = Field("sqlite:///./mt5_api/data/database.db", env="DATABASE_URL")
 
     # MT5 Default Credentials (loaded from ENV if available)
-    MT5_LOGIN: int = Field(0, env="MT5_LOGIN")
+    MT5_ACCOUNT_NUMBER: int = Field(0, env="MT5_ACCOUNT_NUMBER")
     MT5_PASSWORD: str = Field("", env="MT5_PASSWORD")
     MT5_SERVER: str = Field("", env="MT5_SERVER")
     
-    @validator("MT5_LOGIN", pre=True)
+    @validator("MT5_ACCOUNT_NUMBER", pre=True)
     def validate_mt5_login(cls, v):
         if v == "" or v is None:
             return 0

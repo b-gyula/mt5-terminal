@@ -16,9 +16,9 @@ class MT5Connector:
             # might be called without args if env vars are handled by the wrapper,
             # but we'll use the settings for explicitness.
             success = mt5.initialize(
-                login=settings.env.MT5_LOGIN,
-                password=settings.env.MT5_PASSWORD,
-                server=settings.env.MT5_SERVER
+                # login=settings.env.MT5_ACCOUNT_NUMBER or 0,
+                # password=settings.env.MT5_PASSWORD or "",
+                # server=settings.env.MT5_SERVER or ""
             )
             if success:
                 self._initialized = True

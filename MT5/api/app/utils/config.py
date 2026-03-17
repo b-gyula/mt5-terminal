@@ -24,7 +24,7 @@ class EnvSettings(BaseSettings):
     MT5_SERVER: str = Field("", env="MT5_SERVER")
     
     @validator("MT5_ACCOUNT_NUMBER", pre=True)
-    def validate_mt5_login(cls, v):
+    def validate_mt5_account_number(cls, v):
         if v == "" or v is None:
             return 0
         return v

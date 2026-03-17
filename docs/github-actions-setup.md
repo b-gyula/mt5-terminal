@@ -20,18 +20,22 @@ Go to your repository's **Settings > Secrets and variables > Actions** and add t
 - `SSH_KEY`: The content of your private SSH key.
 - `DEPLOY_PATH`: The absolute path where the project should be deployed on the server.
 - `GHCR_PAT`: A GitHub Personal Access Token with `read:packages` scope to pull images from GHCR.
+- `SSL_ENABLED`: Set to `"true"` to enable automated SSL provisioning via Certbot.
+- `SSL_DOMAIN`: Your base domain (e.g., `nodalytics.xyz`). The workflow will provision `mt5.${DOMAIN}` and `mt5-api.${DOMAIN}`.
+- `SSL_EMAIL`: Email address for Certbot registration.
 
 ## 3. Workflow Configuration
 
 The deployment workflow is defined in `.github/workflows/deploy.yml`. It is triggered automatically when the **"Docker Build & Test"** workflow completes successfully on the `main` branch.
 
 ### Deployment Process:
-1.  **SCP File Transfer**: Copies `MT5/docker-compose.yml` and `MT5/.env.example` to the server.
+1.  **SCP File Transfer**: Copies `docker-compose.yml`, `.env.example`, and the `nginx/` directory to the server.
 2.  **SSH Execution**:
-    - Ensures a `.env` file exists (creates it from `.env.example` if missing).
-    - Logs into the GitHub Container Registry (`ghcr.io`).
-    - Pulls the latest Docker images.
-    - Restarts the containers using `docker compose up -d`.
+    - **Refresh Env**: Refreshes `.env` from `.env.example` templates.
+    - **Container Update**: Pulls latest images from `ghcr.io` and restarts services.
+    - **Nginx Sync**: Compares local Nginx configurations with the server and reloads Nginx if changes are detected.
+    - **SSL Provisioning**: Automatically provisions or renews SSL certificates using Certbot for the specified subdomains.
+    - **System Maintenance**: Triggers a Docker system prune to reclaim disk space.
 
 > [!NOTE]
 > The workflow assumes that the Docker images are already built and pushed to GHCR by the prerequisite "Docker Build & Test" workflow.

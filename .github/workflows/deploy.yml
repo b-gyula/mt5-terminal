@@ -53,62 +53,6 @@ jobs:
             docker compose up -d
             docker logout ghcr.io
 
-            # ── Sync Nginx config ──────────────────────────────────────────
-            NGINX_CHANGED=false
-
-            if [ -f "nginx/snippets/proxy_params.conf" ]; then
-              if ! diff -q nginx/snippets/proxy_params.conf /etc/nginx/snippets/proxy_params.conf >/dev/null 2>&1; then
-                sudo mkdir -p /etc/nginx/snippets
-                sudo cp nginx/snippets/proxy_params.conf /etc/nginx/snippets/proxy_params.conf
-                NGINX_CHANGED=true
-                echo "Updated proxy_params.conf"
-              fi
-            fi
-
-            if [ -f "nginx/sites-available/mt5" ]; then
-              if ! diff -q nginx/sites-available/mt5 /etc/nginx/sites-available/mt5 >/dev/null 2>&1; then
-                sudo cp nginx/sites-available/mt5 /etc/nginx/sites-available/mt5
-                sudo ln -sf /etc/nginx/sites-available/mt5 /etc/nginx/sites-enabled/mt5
-                # Remove default if exists
-                sudo rm -f /etc/nginx/sites-enabled/default
-                NGINX_CHANGED=true
-                echo "Updated mt5 site config"
-              fi
-            fi
-
-            if [ "$NGINX_CHANGED" = true ]; then
-              sudo nginx -t && sudo systemctl reload nginx
-              echo "Nginx reloaded"
-            else
-              echo "Nginx config unchanged, skipping reload"
-            fi
-
-            # ── SSL / Certbot (optional) ──────────────────────────────────
-            if [ "${{ secrets.SSL_ENABLED }}" = "true" ]; then
-              if ! command -v certbot &>/dev/null; then
-                sudo apt-get update -qq && sudo apt-get install -y -qq certbot python3-certbot-nginx
-              fi
-
-              DOMAIN="${{ secrets.SSL_DOMAIN }}"
-              EMAIL="${{ secrets.SSL_EMAIL }}"
-              if [ -z "$DOMAIN" ] || [ -z "$EMAIL" ]; then
-                echo "SSL_ENABLED is true but SSL_DOMAIN or SSL_EMAIL is not set, skipping"
-              elif [ ! -f "/etc/letsencrypt/live/mt5.${DOMAIN}/fullchain.pem" ]; then
-                # First-time provisioning
-                sudo certbot --nginx --non-interactive --agree-tos \
-                  --email "$EMAIL" \
-                  -d "mt5.${DOMAIN}" \
-                  -d "mt5-api.${DOMAIN}"
-                echo "SSL certificates provisioned for ${DOMAIN}"
-              else
-                # Renew if close to expiry
-                sudo certbot renew --quiet
-                echo "SSL renewal check complete"
-              fi
-            else
-              echo "SSL_ENABLED not set, skipping Certbot"
-            fi
-
             # ── Cleanup ────────────────────────────────────────────────────
             echo "Pruning old Docker images and build cache..."
             docker system prune -af --volumes

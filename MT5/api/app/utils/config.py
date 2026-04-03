@@ -23,6 +23,7 @@ class EnvSettings(BaseSettings):
     MT5_ACCOUNT_NUMBER: int = Field(0, env="MT5_ACCOUNT_NUMBER")
     MT5_PASSWORD: str = Field("", env="MT5_PASSWORD")
     MT5_SERVER: str = Field("", env="MT5_SERVER")
+    TS_REFRESH_PERIOD: int = Field(0, env="TS_REFRESH_PERIOD")
     
     @validator("MT5_ACCOUNT_NUMBER", pre=True)
     def validate_mt5_account_number(cls, v):

@@ -1,13 +1,18 @@
 import sys
+from typing import Final
+from app.utils.config import settings
 # import logging
 from contextlib import asynccontextmanager
+
 try:
     import MetaTrader5 as mt5
 except ImportError:
     print("CRITICAL ERROR: MetaTrader5 library is not installed. This API requires MetaTrader5 to function.")
     sys.exit(1)
 
+import yaml
 from fastapi import FastAPI, Request, Depends
+from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.routers import trading, auth, account, positions, symbols, history, terminal
@@ -22,7 +27,8 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 logger = logger_instance.get_logger()
 scheduler = BackgroundScheduler()
-API_PREFIX: Final = "/api/v1"
+
+API_PREFIX: Final = '' #"/api/v1"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -32,20 +38,25 @@ async def lifespan(app: FastAPI):
 
     # Secure API Key Generation
     if settings.env.API_KEY_SEED:
-        logger.info(f"API Key successfully generated from seed. Use this for Authentication: {settings.api_key}")
+        logger.info(f"API Key successfully generated from seed. Use this for Authentication: {settings.api_key}" )
     else:
         logger.warning("No API_KEY_SEED found! Authentication will be disabled.")
 
     # Start scheduled tasks
-    logger.info("Starting Background Scheduler...")
-    scheduler.add_job(trailing_stop_handler, "interval", seconds=20)
-    scheduler.start()
+    if settings.env.TS_REFRESH_PERIOD > 0:
+        logger.info("Starting Background Scheduler...")
+        scheduler.add_job(trailing_stop_handler, "interval", seconds=int(settings.env.TS_REFRESH_PERIOD))
+        scheduler.start()
+    else:
+        logger.info("Trailing Stop is disabled. Set env TS_REFRESH_PERIOD > 0 to enable it.")
 
     yield
 
     # Shutdown event
-    logger.info("Shutting down scheduler...")
-    scheduler.shutdown()
+    if scheduler.running:
+        logger.info("Shutting down scheduler...")
+        scheduler.shutdown()
+
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -53,7 +64,7 @@ def create_app() -> FastAPI:
         description=settings.env.API_DESCRIPTION,
         version=settings.env.API_VERSION,
         debug=settings.env.API_DEBUG_MODE,
-        lifespan=lifespan
+        lifespan=lifespan,
     )
 
     app.add_middleware(
@@ -79,38 +90,38 @@ def create_app() -> FastAPI:
     # Auth routes (Unprotected)
     app.include_router(
         auth.router
-        # ,prefix=API_PREFIX
+        ,prefix=API_PREFIX
     )
 
     # Protected routes
     app.include_router(
         trading.router,
-        #prefix=API_PREFIX,
+        prefix=API_PREFIX,
         dependencies=[Depends(verify_api_key)],
     )
     app.include_router(
         account.router,
-        #prefix=API_PREFIX,
+        prefix=API_PREFIX,
         dependencies=[Depends(verify_api_key)],
     )
     app.include_router(
         positions.router,
-        # prefix=API_PREFIX,
+        prefix=API_PREFIX,
         dependencies=[Depends(verify_api_key)],
     )
     app.include_router(
         symbols.router,
-        # prefix=API_PREFIX,
+        prefix=API_PREFIX,
         dependencies=[Depends(verify_api_key)],
     )
     app.include_router(
         history.router,
-        # prefix=API_PREFIX,
+        prefix=API_PREFIX,
         dependencies=[Depends(verify_api_key)],
     )
     app.include_router(
         terminal.router,
-        # prefix=API_PREFIX,
+        prefix=API_PREFIX,
         dependencies=[Depends(verify_api_key)],
     )
 
@@ -118,9 +129,9 @@ def create_app() -> FastAPI:
     def read_root():
         return {"message": "Welcome to MetaTrader 5 API", "docs": "/docs"}
 
-    # Instrument FastAPI
     Instrumentator().instrument(app).expose(app)
 
     return app
 
 app = create_app()
+

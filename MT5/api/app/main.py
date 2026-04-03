@@ -1,5 +1,5 @@
 import sys
-import logging
+# import logging
 from contextlib import asynccontextmanager
 try:
     import MetaTrader5 as mt5
@@ -22,13 +22,14 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 logger = logger_instance.get_logger()
 scheduler = BackgroundScheduler()
+API_PREFIX: Final = "/api/v1"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup event
     logger.info("Initializing Database...")
     init_db()
-    
+
     # Secure API Key Generation
     if settings.env.API_KEY_SEED:
         logger.info(f"API Key successfully generated from seed. Use this for Authentication: {settings.api_key}")
@@ -39,9 +40,9 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Background Scheduler...")
     scheduler.add_job(trailing_stop_handler, "interval", seconds=20)
     scheduler.start()
-    
+
     yield
-    
+
     # Shutdown event
     logger.info("Shutting down scheduler...")
     scheduler.shutdown()
@@ -76,38 +77,41 @@ def create_app() -> FastAPI:
         return {"status": "ok", "version": settings.env.API_VERSION}
 
     # Auth routes (Unprotected)
-    app.include_router(auth.router, prefix="/api/v1")
+    app.include_router(
+        auth.router
+        # ,prefix=API_PREFIX
+    )
 
     # Protected routes
     app.include_router(
-        trading.router, 
-        prefix="/api/v1", 
-        dependencies=[Depends(verify_api_key)]
+        trading.router,
+        #prefix=API_PREFIX,
+        dependencies=[Depends(verify_api_key)],
     )
     app.include_router(
-        account.router, 
-        prefix="/api/v1", 
-        dependencies=[Depends(verify_api_key)]
+        account.router,
+        #prefix=API_PREFIX,
+        dependencies=[Depends(verify_api_key)],
     )
     app.include_router(
-        positions.router, 
-        prefix="/api/v1", 
-        dependencies=[Depends(verify_api_key)]
+        positions.router,
+        # prefix=API_PREFIX,
+        dependencies=[Depends(verify_api_key)],
     )
     app.include_router(
-        symbols.router, 
-        prefix="/api/v1", 
-        dependencies=[Depends(verify_api_key)]
+        symbols.router,
+        # prefix=API_PREFIX,
+        dependencies=[Depends(verify_api_key)],
     )
     app.include_router(
-        history.router, 
-        prefix="/api/v1", 
-        dependencies=[Depends(verify_api_key)]
+        history.router,
+        # prefix=API_PREFIX,
+        dependencies=[Depends(verify_api_key)],
     )
     app.include_router(
-        terminal.router, 
-        prefix="/api/v1", 
-        dependencies=[Depends(verify_api_key)]
+        terminal.router,
+        # prefix=API_PREFIX,
+        dependencies=[Depends(verify_api_key)],
     )
 
     @app.api_route("/", methods=["GET", "HEAD"], tags=["System"])

@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException
 from app.services.mt5_service import mt5_service
-from typing import Optional, List
+from typing import List
 from datetime import datetime
 import MetaTrader5 as mt5
 
-router = APIRouter(prefix="/symbols", tags=["Symbols"])
+router = APIRouter(prefix="/symb", tags=["Symbols"])
 
 def error_response(detail: str):
     code, msg = mt5.last_error()

@@ -11,7 +11,7 @@ class MarketOrderRequest(BaseModel):
     symbol: str
     volume: float
     order_type: str = Field(..., pattern="^(BUY|SELL)$")
-    sl: float
+    sl: Optional[float] = None
     tp: Optional[float] = None
     deviation: int = 20
     comment: str = ""

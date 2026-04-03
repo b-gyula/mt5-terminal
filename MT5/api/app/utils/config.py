@@ -1,5 +1,6 @@
-from pydantic import BaseSettings, Field, validator
-from typing import Union, List, Any
+from pydantic import Field, validator
+from pydantic import BaseSettings
+from typing import Any
 from pathlib import Path
 
 class EnvSettings(BaseSettings):
@@ -16,7 +17,7 @@ class EnvSettings(BaseSettings):
     LOG_LEVEL: str = Field("INFO", env="LOG_LEVEL")
 
     # Database Settings
-    DATABASE_URL: str = Field("sqlite:///./mt5_api/data/database.db", env="DATABASE_URL")
+    DATABASE_URL: str = Field("sqlite:///./data/database.db", env="DATABASE_URL")
 
     # MT5 Default Credentials (loaded from ENV if available)
     MT5_ACCOUNT_NUMBER: int = Field(0, env="MT5_ACCOUNT_NUMBER")
@@ -42,7 +43,7 @@ class Settings:
         self.base_dir = Path(__file__).resolve().parent.parent.parent
         self.logs_dir = self.base_dir / "logs"
         self.logs_dir.mkdir(parents=True, exist_ok=True)
-        self.data_dir = self.base_dir / "mt5_api" / "data"
+        self.data_dir = self.base_dir / "data"
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
     @property
@@ -58,6 +59,5 @@ class Settings:
             return getattr(self.env, name)
         except AttributeError:
             raise AttributeError(f"'Settings' object has no attribute '{name}'")
-
 
 settings = Settings()

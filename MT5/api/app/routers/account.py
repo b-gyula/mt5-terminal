@@ -3,7 +3,7 @@ from app.services.mt5_service import mt5_service
 from app.utils.constants import RETCODE_DESCRIPTIONS
 import MetaTrader5 as mt5
 
-router = APIRouter(prefix="/account", tags=["Account"])
+router = APIRouter(prefix="/acc", tags=["Account"])
 
 def error_response(detail: str):
     code, msg = mt5.last_error()

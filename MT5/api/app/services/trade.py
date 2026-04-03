@@ -7,7 +7,7 @@ from app.utils.exceptions import MT5OrderError, MT5SymbolNotFoundError
 logger = logging.getLogger(__name__)
 
 class TradeService:
-    def send_market_order(self, symbol: str, volume: float, order_type: str, sl: float, tp: float = None, 
+    def send_market_order(self, symbol: str, volume: float, order_type: str, sl: float | None = None, tp: float | None = None, 
                           deviation: int = 20, comment: str = '', magic: int = 0, type_filling: str = 'IOC'):
         mt5_connector.initialize()
         
@@ -35,14 +35,15 @@ class TradeService:
             "volume": float(volume),
             "type": order_type_map.get(order_type.upper()),
             "price": price,
-            "sl": float(sl),
             "deviation": int(deviation),
             "magic": int(magic),
             "comment": comment,
             "type_time": mt5.ORDER_TIME_GTC,
             "type_filling": filling_map.get(type_filling.upper(), mt5.ORDER_FILLING_IOC),
         }
-        
+        if sl is not None:
+            request["sl"] = float(sl)
+
         if tp is not None:
             request["tp"] = float(tp)
             
@@ -51,7 +52,7 @@ class TradeService:
             raise MT5OrderError(f"Order failed: {result.comment}", code=result.retcode)
         return result
 
-    def modify_sl_tp(self, ticket: int, sl: float, tp: float = None):
+    def modify_sl_tp(self, ticket: int, sl: float, tp: float | None = None):
         mt5_connector.initialize()
         
         position = mt5.positions_get(ticket=ticket)

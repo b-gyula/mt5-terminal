@@ -1,0 +1,22 @@
+[project]
+name = "app"
+version = "0.1.0"
+#description = "Add your description here"
+readme = "README.md"
+#requires-python = ">=3.9"
+dependencies = [
+    "apscheduler>=3.11.2",
+    "fastapi>=0.125.0",
+    "metatrader5>=5.0.5640 ; sys_platform == 'win32'",
+    "numpy>=2.0.2",
+    "pandas>=2.3.3",
+    "prometheus-fastapi-instrumentator>=7.1.0",
+    "pydantic<2.0.0",
+    "python-dotenv>=1.2.1",
+    "pytz>=2025.2",
+    "pyyaml>=6.0.3",
+    "requests>=2.32.5",
+    "sqlalchemy>=2.0.48",
+    "sqlmodel>=0.0.30",
+    "uvicorn>=0.39.0",
+]

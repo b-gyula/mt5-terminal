@@ -3,7 +3,7 @@ from app.services.mt5_service import mt5_service
 from typing import Optional, List
 import MetaTrader5 as mt5
 
-router = APIRouter(prefix="/positions", tags=["Positions"])
+router = APIRouter(prefix="/pos", tags=["Positions"])
 
 def error_response(detail: str):
     code, msg = mt5.last_error()

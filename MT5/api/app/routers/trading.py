@@ -10,7 +10,7 @@ from app.utils.constants import METALS, OILS, CURRENCY_PAIRS, CRYPTOCURRENCIES
 from app.utils import helpers
 import MetaTrader5 as mt5
 
-router = APIRouter(prefix="/trading", tags=["Trading"])
+router = APIRouter(prefix="/trd", tags=["Trading"])
 
 def error_response(detail: str):
     code, msg = mt5.last_error()
@@ -34,7 +34,7 @@ def get_trades(
         statement = statement.where(Trade.close_time != None)
     return session.exec(statement).all()
 
-@router.post("/trades", response_model=Trade, status_code=status.HTTP_201_CREATED)
+@router.post("/trade", response_model=Trade, status_code=status.HTTP_201_CREATED)
 def create_trade(trade_data: TradeBase, session: Session = Depends(get_session)):
     trade = Trade.from_orm(trade_data)
     session.add(trade)

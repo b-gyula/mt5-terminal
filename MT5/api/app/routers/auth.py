@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 # because it adds its own prefix /auth. 
 # Actually in main.py I added prefix /api/v1. 
 # So final path is /api/v1/auth/login.
-router = APIRouter(prefix="/auth", tags=["Auth"])
+router = APIRouter(tags=["Auth"])
 
 class LoginRequest(BaseModel):
     login: int

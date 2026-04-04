@@ -1,42 +1,34 @@
-from pydantic import Field, validator
-from pydantic import BaseSettings
+from pydantic import field_validator, Field
 from typing import Any
 from pathlib import Path
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
+DEV_STATE = "dev"
 class EnvSettings(BaseSettings):
     # API Settings
-    API_NAME: str = Field("MetaTrader 5 API", env="API_NAME")
-    API_DESCRIPTION: str = Field("High-performance MT5 Trading Backend", env="API_DESCRIPTION")
-    API_VERSION: str = Field("1.0.0", env="API_VERSION")
-    API_DEBUG_MODE: bool = Field(False, env="API_DEBUG_MODE")
+    API_NAME: str = "MetaTrader 5 API"
+    API_DESCRIPTION: str = "High-performance MT5 Trading Backend"
+    API_VERSION: str = "1.0.0"
+    API_DEBUG_MODE: bool = False
     
     # Server Settings
-    HOST: str = Field("0.0.0.0", env="HOST")
-    PORT: int = Field(8000, env="MT5_API_PORT")
-    ENV_STATE: str = Field("development", env="ENV_STATE")
-    LOG_LEVEL: str = Field("INFO", env="LOG_LEVEL")
+    HOST: str = "0.0.0.0"
+    PORT: int = 8000
+    ENV_STATE: str = DEV_STATE
+    LOG_LEVEL: str = "INFO"
 
     # Database Settings
-    DATABASE_URL: str = Field("sqlite:///./data/database.db", env="DATABASE_URL")
+    DATABASE_URL: str = "sqlite:///./data/database.db"
 
     # MT5 Default Credentials (loaded from ENV if available)
-    MT5_ACCOUNT_NUMBER: int = Field(0, env="MT5_ACCOUNT_NUMBER")
-    MT5_PASSWORD: str = Field("", env="MT5_PASSWORD")
-    MT5_SERVER: str = Field("", env="MT5_SERVER")
-    TS_REFRESH_PERIOD: int = Field(0, env="TS_REFRESH_PERIOD")
-    
-    @validator("MT5_ACCOUNT_NUMBER", pre=True)
-    def validate_mt5_account_number(cls, v):
-        if v == "" or v is None:
-            return 0
-        return v
+    MT5_ACCOUNT_NUMBER: int = 0
+    MT5_PASSWORD: str = ""
+    MT5_SERVER: str = ""
+    TS_REFRESH_PERIOD: int = 0
     
     # Auth Settings
-    API_KEY_SEED: str = Field("", env="API_KEY_SEED")
-
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    API_KEY_SEED: str = ""
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 class Settings:
     def __init__(self):

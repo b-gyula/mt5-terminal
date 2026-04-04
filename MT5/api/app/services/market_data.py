@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 from typing import Optional, List, Dict
 from .connector import mt5_connector
-from app.utils.constants import MT5Timeframe
+from app.models.mt5 import MT5Timeframe
 from app.utils.exceptions import MT5SymbolNotFoundError
 from app.utils.cache import cache_manager
 

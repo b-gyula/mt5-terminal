@@ -15,13 +15,13 @@ class EnvSettings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     ENV_STATE: str = DEV_STATE
-    LOG_LEVEL: str = "INFO"
+    LOG_LEVEL: str =  "DEBUG" if ENV_STATE == DEV_STATE else "INFO"
 
     # Database Settings
     DATABASE_URL: str = "sqlite:///./data/database.db"
 
     # MT5 Default Credentials (loaded from ENV if available)
-    MT5_ACCOUNT_NUMBER: int = 0
+    MT5_ACCOUNT_NUMBER: int = Field(0, ge=0)
     MT5_PASSWORD: str = ""
     MT5_SERVER: str = ""
     TS_REFRESH_PERIOD: int = 0

@@ -1,5 +1,5 @@
 import uvicorn
-from app.utils.config import settings
+from app.utils.config import settings, DEV_STATE
 from app.utils.logger import logger_instance
 
 logger = logger_instance.get_logger()
@@ -12,7 +12,7 @@ def main():
         "app.main:app",
         host=settings.env.HOST,
         port=settings.env.PORT,
-        reload=settings.env.ENV_STATE == "development",
+        reload=settings.env.ENV_STATE == DEV_STATE,
         log_level=settings.env.LOG_LEVEL.lower(),
     )
 

@@ -114,10 +114,16 @@ class TradeService:
             raise MT5OrderError(f"Close failed: {result.comment}", code=result.retcode)
         return result
 
-    def get_positions(self, magic: int = None) -> List[PositionInfo]:
+    def get_positions(self, magic: int | None = None, symbol: str | None  = None) -> List[PositionInfo]:
         mt5_connector.initialize()
-        positions = mt5.positions_get(magic=magic) if magic else mt5.positions_get()
+        prms = {}
+        if magic is not None:
+            prms["magic"] = magic
+        if symbol is not None:
+            prms["symbol"] = symbol
+        positions = mt5.positions_get(**prms)
         if positions is None:
+            logger.error(f"Failed to get positions: {mt5.last_error()}")
             return []
         return [PositionInfo(**p._asdict()).model_dump(mode="json") for p in positions]
 

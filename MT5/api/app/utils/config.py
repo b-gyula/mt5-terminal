@@ -8,7 +8,7 @@ class EnvSettings(BaseSettings):
     # API Settings
     API_NAME: str = "MetaTrader 5 API"
     API_DESCRIPTION: str = "High-performance MT5 Trading Backend"
-    API_VERSION: str = "1.0.0"
+    API_VERSION: str = "0.2"
     API_DEBUG_MODE: bool = False
     
     # Server Settings
@@ -23,7 +23,7 @@ class EnvSettings(BaseSettings):
     # MT5 Default Credentials (loaded from ENV if available)
     MT5_ACCOUNT_NUMBER: int = Field(0, ge=0)
     MT5_PASSWORD: str = ""
-    MT5_SERVER: str = ""
+    MT5_SERVER: str 
     TS_REFRESH_PERIOD: int = 0
     
     # Auth Settings

@@ -3,12 +3,20 @@ from typing import Optional, List
 import MetaTrader5 as mt5
 from .connector import mt5_connector
 from app.utils.exceptions import MT5OrderError, MT5SymbolNotFoundError
-from app.models.mt5 import PositionInfo, OrderType, OrderFilling
+from app.models.mt5 import PositionInfo, OrderType, OrderFilling, OrderRequest
 
 logger = logging.getLogger(__name__)
 
 
 class TradeService:
+    def send_order(self, req: OrderRequest):
+        mt5_connector.initialize()
+        tick = mt5.symbol_info_tick(symbol)
+        if tick is None:
+            raise MT5SymbolNotFoundError(f"Failed to get tick for {symbol}")
+
+
+
     def send_market_order(
         self,
         symbol: str,
@@ -114,10 +122,11 @@ class TradeService:
             raise MT5OrderError(f"Close failed: {result.comment}", code=result.retcode)
         return result
 
+    # TODO: magic does not filter!
     def get_positions(self, magic: int | None = None, symbol: str | None  = None) -> List[PositionInfo]:
         mt5_connector.initialize()
         prms = {}
-        if magic is not None:
+        if magic is not None: 
             prms["magic"] = magic
         if symbol is not None:
             prms["symbol"] = symbol
@@ -128,10 +137,10 @@ class TradeService:
         return [PositionInfo(**p._asdict()).model_dump(mode="json") for p in positions]
 
     def close_all_positions(
-        self, order_type: str = "all", magic: Optional[int] = None
+        self, order_type: str = "all", magic: Optional[int] = None, symbol: Optional[str] = None
     ) -> List:
         mt5_connector.initialize()
-        positions = self.get_positions(magic)
+        positions = self.get_positions(magic, symbol)
         results = []
         if not positions:
             return []
@@ -146,6 +155,12 @@ class TradeService:
             if res:
                 results.append(res)
         return results
+
+
+
+
+
+
 
 
 trade_service = TradeService()

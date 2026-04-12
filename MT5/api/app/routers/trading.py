@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
-from typing import List, Optional
+from typing import List, Optional, Protocol
 from app.db.database import get_session
-from app.models.trade import Trade, TradeClosePricesMutation, TradeBase, TradeClosePricesMutationBase
+from app.models.trade import Trade, TradeBase
 from app.services.mt5_service import mt5_service
 from app.models.trading import MarketOrderRequest, ModifySLTPRequest
 from app.db import crud
-from app.utils.constants import METALS, OILS, CURRENCY_PAIRS, CRYPTOCURRENCIES
 from app.utils import helpers
 import MetaTrader5 as mt5
+from pydantic import BaseModel
+from app.models.mt5 import OrderRequest
 
 router = APIRouter(prefix="/trd", tags=["Trading"])
 
@@ -42,8 +43,36 @@ def create_trade(trade_data: TradeBase, session: Session = Depends(get_session))
     session.refresh(trade)
     return trade
 
+class SendOrderRequest(BaseModel):
+    buy: str | None = None
+    sell: str | None = None
+    symbol: str | None = None
+    volume: str | None = None
+    type: str | None = None
+    price: str | None = None
+    stop: str | None = None
+    tp: str | None = None
+    close: str | None = None
+    deviation: int = 20
+    magic: int = 0
+    comment: str = ""
+    type_time: int = mt5.ORDER_TIME_GTC
+    type_filling: int = mt5.ORDER_FILLING_IOC
+
 @router.post("/order", status_code=status.HTTP_201_CREATED)
 def send_order(
+    request: SendOrderRequest,
+    session: Session = Depends(get_session)
+):
+    req: OrderRequest
+    try:
+        result = mt5_service.send_order(req)
+    except Exception as e:
+        raise error_response(f"Error sending order: {str(e)}")
+
+
+@router.post("/order/market", status_code=status.HTTP_201_CREATED)
+def send_market_order(
     request: MarketOrderRequest,
     session: Session = Depends(get_session)
 ):
@@ -84,7 +113,7 @@ def send_order(
         )
         return {"success": True, "trade": trade}
     except Exception as e:
-        raise error_response(f"Error sending order: {str(e)}")
+        raise error_response(f"Error sending market order: {str(e)}")
 
 @router.post("/modify-sl-tp")
 def modify_sl_tp(

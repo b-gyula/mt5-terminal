@@ -1,15 +1,7 @@
-import sys
 from typing import Final
 from app.utils.config import settings
 # import logging
 from contextlib import asynccontextmanager
-
-try:
-    import MetaTrader5 as mt5
-except ImportError:
-    print("CRITICAL ERROR: Required MetaTrader5 library is not installed")
-    sys.exit(1)
-
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -29,12 +21,12 @@ scheduler = BackgroundScheduler()
 
 API_PREFIX: Final = ""  # "/api/v1"
 
-CHARSET_UTF8 = "utf-8"
-CHARSET_LATIN = "latin-1"
-HDR_CONTENT_TYPE="content-type"
-MEDIA_TYPE_JSON = "application/json"
-MEDIA_TYPE_TEXT = "text/plain"
-CHARSET = "charset"
+CHARSET_UTF8: Final = "utf-8"
+CHARSET_LATIN: Final = "latin-1"
+HDR_CONTENT_TYPE: Final ="content-type"
+MEDIA_TYPE_JSON: Final = "application/json"
+MEDIA_TYPE_TEXT: Final = "text/plain"
+CHARSET: Final = "charset"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

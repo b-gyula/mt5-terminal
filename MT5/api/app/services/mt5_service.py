@@ -1,8 +1,6 @@
-from typing import Optional, List, Dict, Union
-from datetime import datetime
 from .connector import mt5_connector
 from .market_data import market_data_service
-from .trade import trade_service
+from .trade import trade_service, OrderRequest
 from .history import history_service
 
 class MT5Service:
@@ -19,6 +17,9 @@ class MT5Service:
     def get_symbols(self, *args, **kwargs):
         return market_data_service.get_symbols(*args, **kwargs)
 
+    def send_order(self, req: OrderRequest):
+        return trade_service.send_order(req)
+    
     def send_market_order(self, *args, **kwargs):
         return trade_service.send_market_order(*args, **kwargs)
 
@@ -28,14 +29,14 @@ class MT5Service:
     def close_position(self, *args, **kwargs):
         return trade_service.close_position(*args, **kwargs)
 
-    def get_positions(self, *args, **kwargs):
-        return trade_service.get_positions(*args, **kwargs)
+    def get_positions(self, magic: int | None, symbol: str | None):
+        return trade_service.get_positions(magic, symbol)
 
-    def get_symbol_info(self, *args, **kwargs):
-        return market_data_service.get_symbol_info(*args, **kwargs)
+    def get_symbol_info(self, symbol: str):
+        return market_data_service.get_symbol_info(symbol: str)
 
-    def get_symbol_info_tick(self, *args, **kwargs):
-        return market_data_service.get_symbol_info_tick(*args, **kwargs)
+    def get_symbol_info_tick(self, symbol: str):
+        return market_data_service.get_symbol_info_tick(symbol: str)
 
     def close_all_positions(self, *args, **kwargs):
         return trade_service.close_all_positions(*args, **kwargs)

@@ -27,9 +27,9 @@ def close_position(ticket: int):
         raise error_response(f"Error closing position: {str(e)}")
 
 @router.post("/close_all")
-def close_all_positions(order_type: str = "all", magic: Optional[int] = None):
+def close_all_positions(order_type: str = "all", magic: Optional[int] = None, symbol: Optional[str] = None):
     try:
-        results = mt5_service.close_all_positions(order_type, magic)
+        results = mt5_service.close_all_positions(order_type, magic, symbol)
         return {"message": f"Closed {len(results)} positions", "results": [r._asdict() for r in results]}
     except Exception as e:
         raise error_response(f"Error closing all positions: {str(e)}")

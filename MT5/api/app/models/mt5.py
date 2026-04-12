@@ -96,6 +96,7 @@ class MT5Timeframe(IntEnum):
 
 
 class OrderType(IntEnum):
+    'https://www.mql5.com/en/docs/python_metatrader5/mt5ordercalcmargin_py#order_type'
     BUY = mt5.ORDER_TYPE_BUY
     SELL = mt5.ORDER_TYPE_SELL
     BUY_LIMIT = mt5.ORDER_TYPE_BUY_LIMIT
@@ -110,6 +111,7 @@ class OrderType(IntEnum):
 
 
 class OrderFilling(IntEnum):
+    'https://www.mql5.com/en/docs/python_metatrader5/mt5ordercheck_py#order_type_filling'
     IOC = mt5.ORDER_FILLING_IOC
     FOK = mt5.ORDER_FILLING_FOK
     RETURN = mt5.ORDER_FILLING_RETURN
@@ -136,3 +138,25 @@ class PositionInfo(BaseModel):
     symbol: str
     comment: str
     external_id: str
+
+
+class OrderRequest:
+   'https://www.mql5.com/en/docs/constants/structures/mqltraderequest'
+   action: int           # Trade operation type https://www.mql5.com/en/docs/python_metatrader5/mt5ordercheck_py#trade_request_actions
+   magic: int            # Expert Advisor ID (magic number)
+   #order: int           # Order ticket
+   symbol: str          # Trade symbol
+   volume: float        # Requested volume for a deal in lots
+   price: float         # Price
+   stoplimit: float     # StopLimit level of the order
+   sl: float            # Stop Loss level of the order
+   tp: float            # Take Profit level of the order
+   deviation: int       # Maximal possible deviation from the requested price
+   type: OrderType      # Order type
+   #ENUM_ORDER_TYPE_FILLING       type_filling;     // Order execution type
+   #ENUM_ORDER_TYPE_TIME          type_time;        // Order expiration type
+   #datetime                      expiration;       // Order expiration time (for the orders of ORDER_TIME_SPECIFIED type)
+   comment: str          # Order comment
+   #ulong                         position;         // Position ticket
+   #ulong                         position_by;      // The ticket of an opposite position
+  

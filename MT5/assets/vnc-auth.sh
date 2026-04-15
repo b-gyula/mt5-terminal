@@ -22,14 +22,14 @@
 # fi
 
 # Create VNC password file for Xtigervnc
-if [ -n "$VNC_PASSWORD" ]; then
+if [ -n "$VNC_PASSWORD" ] && [ ! -f /root/.vnc/passwd ]; then
     echo "==> Setting up VNC password..."
     mkdir -p /root/.vnc
     if echo "$VNC_PASSWORD" | vncpasswd -f > /root/.vnc/passwd; then
-        echo "    ✅ VNC password file created at /root/.vnc/passwd"
+        echo "✅ VNC password file created at /root/.vnc/passwd"
         chmod 600 /root/.vnc/passwd
     else
-        echo "    ❌ ERROR: Failed to set VNC password"
+        echo "❌ ERROR: Failed to set VNC password"
     fi
 else
     echo "==> WARNING: VNC_PASSWORD not set. Direct VNC will not be secure."

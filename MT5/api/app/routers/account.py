@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from app.services.mt5_service import mt5_service
 from app.models.mt5 import RETCODE_DESCRIPTIONS
-from routers import error_response
+from app.routers import error_response
 
 router = APIRouter(prefix="/acc", tags=["Account"])
 

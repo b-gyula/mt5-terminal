@@ -114,7 +114,7 @@ class SendOrderRequest(BaseModel):
             field = buy or sell
             other = 'buy' if buy else 'sell'
             vol, symbol, price = parse_buy_field(field, other)
-            values["volume"] = vol if buy else -vol
+            values["volume"] = vol if buy else '-'+vol
             checkSet2x(symbol, values,'symbol', other)
             checkSet2x(price, values,"price", other)
         return values
@@ -137,7 +137,7 @@ class SendOrderRequest(BaseModel):
     def toTradeRequest(my, ask_price: float, bid_price: float):
         """ Convert to TradeRequest:
         - `buy`/`sell` can contain `volume` `symbol` [@] `price`
-        - One and only one of `buy`/`sell`/`volume` needs to be defined
+        - One and only one of `buy`/`sell`/`volume` may be defined
         - `volume` may be a -/+ float or %. In latter case the acctual total position size of the symbol needs to be reduced / increased with
         - `price` may be a -/+ float or % or prefixes with ~.
             - if prefixed with -/+, or % then treated as relative price
@@ -145,7 +145,7 @@ class SendOrderRequest(BaseModel):
 
         :param ask_price:
         :param bid_price:
-        :return:
+        :return: TradeRequest
         """
         amt = Amt(my.volume)
         actPrice = ask_price if amt.buy else bid_price

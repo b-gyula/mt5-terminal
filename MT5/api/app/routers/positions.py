@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from app.services.mt5_service import mt5_service
 from typing import Optional
-from routers import error_response
+from app.routers import error_response
 
 router = APIRouter(prefix="/pos", tags=["Positions"])
 

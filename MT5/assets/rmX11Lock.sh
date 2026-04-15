@@ -1,0 +1,1 @@
+rm /tmp/.X0-lock

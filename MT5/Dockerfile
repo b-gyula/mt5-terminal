@@ -1,12 +1,5 @@
-# Build stage for easy-novnc
-FROM golang:1.14-buster AS novnc-build
-WORKDIR /src
-RUN go mod init build && \
-    go get github.com/geek1011/easy-novnc@v1.1.0 && \
-    go build -o /bin/easy-novnc github.com/geek1011/easy-novnc
-
-# Final stage
-FROM docker.io/tobix/pywine:3.9
+# Use Ubuntu 24.04 as base with WineHQ repository
+FROM docker.io/ubuntu:24.04
 
 # ----------------------------------------------------------------------------------------------
 LABEL org.opencontainers.image.source=https://github.com/nodalytics/metatrader-terminal
@@ -20,20 +13,22 @@ ENV HOME=/root \
     SERVER_PORT=18812 \
     VNC_DESKTOP_NAME="MetaTrader 5" \
     VNC_GEOMETRY=1280x800 \
-    DRIVE_C=${WINEPREFIX}/drive_c \
-    STOPSIGNAL=SIGRTMIN+3
+    WINEPREFIX=/root/mt \
+    STOPSIGNAL=SIGRTMIN+3 \
+    XDG_RUNTIME_DIR=/run/user/0 \
+    WINEDEBUG=-all
 
 # MT5 Account Details (Provide at runtime)
-ENV MT5_ACCOUNT_NUMBER=0 \
-    MT5_SERVER='' \
-    VNC_USER=mt5_user \
-    VNC_PASSWORD=password
+ENV MT5_PATH="${WINEPREFIX}/drive_c/mt5/terminal64.exe" \
+    MT_ACCOUNT_NUMBER=0 \
+    MT5_SERVER=''
 
-# Install system dependencies and clean up in a single layer
+# Install system dependencies, WineHQ and clean up in a single layer
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     openbox \
     tigervnc-standalone-server \
+    tigervnc-tools \
     supervisor \
     gosu \
     lxterminal \
@@ -51,35 +46,41 @@ RUN apt-get update && \
     wget \
     xvfb \
     libnss3 \
-    nginx-light \
-    apache2-utils && \
-    mkdir -p /usr/share/desktop-directories && \
-    apt-get clean && \
+#    nginx-light \
+    apache2-utils \
+    dbus-x11 \
+#   winbind \
+    && mkdir -p /usr/share/desktop-directories \
+    && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-
-# Copy easy-novnc binary from build stage
-COPY --from=novnc-build /bin/easy-novnc /usr/local/bin/
 
 # Copy configuration files
 COPY assets/menu.xml /etc/xdg/openbox/
 COPY assets/supervisord.conf /etc/
 
 WORKDIR ${HOME}
+# Install uv package manager && chmod +x ~/*.exe
+ADD https://releases.astral.sh/github/uv/releases/download/0.11.2/uv-x86_64-pc-windows-msvc.zip ./
+RUN unzip ./uv-x86_64-pc-windows-msvc.zip -d ./ \
+     && rm ./uv-x86_64-pc-windows-msvc.zip
+
+# get MetaTrader and WebView2
+ADD https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe ./
+ADD https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/f2910a1e-e5a6-4f17-b52d-7faf525d17f8/MicrosoftEdgeWebview2Setup.exe ./
 
 # Copy assets, api and install Python dependencies
 COPY assets .
-COPY api /root/api
-RUN wine pip install --no-cache-dir wheel && \
-    wine pip install --no-cache-dir -r requirements.txt && \
-    wine pip install --no-cache-dir -r /root/api/requirements.txt && \
-    mkdir -p ${HOME}/Desktop && \
+COPY api/app /root/app/
+COPY api/pyproject.toml ./
+
+RUN  mkdir -p ${HOME}/Desktop && \
     cp metatrader.desktop ${HOME}/Desktop/ && \
     cp metatrader.desktop /usr/share/applications/ && \
-    chmod +x run-server.sh xtigervnc.sh easy-novnc.sh run-mt5.sh vnc-auth.sh entrypoint.sh && \
-    BUILD_MODE=1 xvfb-run ./run-mt5.sh
+    chmod +x *.sh
 
-# TODO: Upgrade to wine >= 8 for better MT5 stability.
-# EXPOSE 5900
-EXPOSE 6901 8000
+RUN mkdir -p $XDG_RUNTIME_DIR && \
+    ~/wine-inst.sh
+
+EXPOSE 5900 8000
 
 CMD ["/root/entrypoint.sh"]

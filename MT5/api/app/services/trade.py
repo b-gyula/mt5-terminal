@@ -1,20 +1,22 @@
 import logging
-from typing import Optional, List
+from typing import List
 import MetaTrader5 as mt5
 from .connector import mt5_connector
 from app.utils.exceptions import MT5OrderError, MT5SymbolNotFoundError
-from app.models.mt5 import PositionInfo, OrderType, OrderFilling, OrderRequest
+from app.models import mt5 as mt
 
 logger = logging.getLogger(__name__)
 
 
 class TradeService:
-    def send_order(self, req: OrderRequest):
+    def send_order(self, req: mt.TradeRequest):
         mt5_connector.initialize()
-        tick = mt5.symbol_info_tick(symbol)
-        if tick is None:
-            raise MT5SymbolNotFoundError(f"Failed to get tick for {symbol}")
-
+        # prms = class_attrs_to_dict(req)
+        prms = vars(req) #._asdict()
+        result = mt5.order_send(prms)
+        if result.retcode != mt5.TRADE_RETCODE_DONE:
+            raise MT5OrderError(f"Order failed: {result.comment}")
+        return result
 
 
     def send_market_order(
@@ -42,13 +44,13 @@ class TradeService:
             "action": mt5.TRADE_ACTION_DEAL,
             "symbol": symbol,
             "volume": float(volume),
-            "type": OrderType[order_type.upper()].value,
+            "type": mt.OrderType[order_type.upper()].value,
             "price": price,
             "deviation": int(deviation),
             "magic": int(magic),
             "comment": comment,
             "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": OrderFilling[type_filling.upper()].value
+            "type_filling": mt.OrderFilling[type_filling.upper()].value
         }
         if sl is not None:
             request["sl"] = float(sl)
@@ -60,6 +62,7 @@ class TradeService:
         if result.retcode != mt5.TRADE_RETCODE_DONE:
             raise MT5OrderError(f"Order failed: {result.comment}", code=result.retcode)
         return result
+
 
     def modify_sl_tp(self, ticket: int, sl: float, tp: float | None = None):
         mt5_connector.initialize()
@@ -82,6 +85,7 @@ class TradeService:
 
         result = mt5.order_send(request)
         return result
+
 
     def close_position(
         self,
@@ -114,7 +118,7 @@ class TradeService:
             "magic": pos.magic,
             "comment": comment,
             "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": OrderFilling[type_filling.upper()].value
+            "type_filling": mt.OrderFilling[type_filling.upper()].value,
         }
 
         result = mt5.order_send(request)
@@ -122,22 +126,24 @@ class TradeService:
             raise MT5OrderError(f"Close failed: {result.comment}", code=result.retcode)
         return result
 
+
     # TODO: magic does not filter!
-    def get_positions(self, magic: int | None = None, symbol: str | None  = None) -> List[PositionInfo]:
+    def get_positions(self, magic: int | None = None, symbol: str | None = None
+    ) -> tuple[mt5.TradePosition,...]:
         mt5_connector.initialize()
         prms = {}
-        if magic is not None: 
+        if magic:
             prms["magic"] = magic
-        if symbol is not None:
+        if symbol:
             prms["symbol"] = symbol
         positions = mt5.positions_get(**prms)
         if positions is None:
             logger.error(f"Failed to get positions: {mt5.last_error()}")
-            return []
-        return [PositionInfo(**p._asdict()).model_dump(mode="json") for p in positions]
+            return ()
+        return positions
 
-    def close_all_positions(
-        self, order_type: str = "all", magic: Optional[int] = None, symbol: Optional[str] = None
+
+    def close_all_positions(self, order_type: str = "all", magic: int | None = None, symbol: str | None = None
     ) -> List:
         mt5_connector.initialize()
         positions = self.get_positions(magic, symbol)
@@ -155,12 +161,6 @@ class TradeService:
             if res:
                 results.append(res)
         return results
-
-
-
-
-
-
 
 
 trade_service = TradeService()

@@ -1,18 +1,14 @@
 from fastapi import APIRouter, HTTPException
 from app.services.mt5_service import mt5_service
 from typing import Optional
-import MetaTrader5 as mt5
+from routers import error_response
 
 router = APIRouter(prefix="/pos", tags=["Positions"])
-
-def error_response(detail: str):
-    code, msg = mt5.last_error()
-    return HTTPException(status_code=500, detail={"error": detail, "mt5_code": code, "mt5_msg": msg})
 
 @router.get("/")
 def get_positions(magic: Optional[int] = None, symbol: Optional[str] = None):
     try:
-        return mt5_service.get_positions(magic, symbol)
+        return mt5_service.get_positions(magic, symbol)._asdict()
     except Exception as e:
         raise error_response(f"Error fetching positions: {str(e)}")
 

@@ -1,13 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from app.services.mt5_service import mt5_service
-from app.utils.constants import RETCODE_DESCRIPTIONS
-import MetaTrader5 as mt5
+from app.models.mt5 import RETCODE_DESCRIPTIONS
+from routers import error_response
 
 router = APIRouter(prefix="/acc", tags=["Account"])
-
-def error_response(detail: str):
-    code, msg = mt5.last_error()
-    return HTTPException(status_code=500, detail={"error": detail, "mt5_code": code, "mt5_msg": msg})
 
 @router.get("/health")
 def health():
@@ -17,6 +13,7 @@ def health():
         return {"status": "unhealthy", "mt5": "disconnected"}
     except Exception as e:
         raise error_response(f"Error checking health: {str(e)}")
+
 
 @router.get("/last_error")
 def get_last_error():
@@ -29,6 +26,7 @@ def get_last_error():
         }
     except Exception as e:
         raise error_response(f"Error getting last error: {str(e)}")
+
 
 @router.get("/retcodes")
 def get_retcodes():

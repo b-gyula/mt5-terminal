@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 from typing import Optional, List, Dict
 from .connector import mt5_connector
-from app.models.mt5 import MT5Timeframe
+from app.models import mt5 as mt
 from app.utils.exceptions import MT5SymbolNotFoundError
 from app.utils.cache import cache_manager
 
@@ -25,9 +25,9 @@ class MarketDataService:
 
     def get_timeframe(self, timeframe_str: str) -> int:
         try:
-            return MT5Timeframe[timeframe_str.upper()].value
+            return mt.Timeframe[timeframe_str.upper()].value
         except KeyError:
-            valid_timeframes = ', '.join([t.name for t in MT5Timeframe])
+            valid_timeframes = ', '.join([t.name for t in mt.Timeframe])
             raise ValueError(f"Invalid timeframe: '{timeframe_str}'. Valid options are: {valid_timeframes}.")
 
     def get_symbol_info(self, symbol: str) -> Dict:

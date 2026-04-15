@@ -1,6 +1,8 @@
 from .connector import mt5_connector
 from .market_data import market_data_service
-from .trade import trade_service, OrderRequest
+from .trade import trade_service
+from app.models import mt5 as mt
+import MetaTrader5 as mt5
 from .history import history_service
 
 class MT5Service:
@@ -17,7 +19,7 @@ class MT5Service:
     def get_symbols(self, *args, **kwargs):
         return market_data_service.get_symbols(*args, **kwargs)
 
-    def send_order(self, req: OrderRequest):
+    def send_order(self, req: mt.TradeRequest):
         return trade_service.send_order(req)
     
     def send_market_order(self, *args, **kwargs):
@@ -29,14 +31,14 @@ class MT5Service:
     def close_position(self, *args, **kwargs):
         return trade_service.close_position(*args, **kwargs)
 
-    def get_positions(self, magic: int | None, symbol: str | None):
+    def get_positions(self, magic: int | None, symbol: str | None) -> tuple[mt5.TradePosition,...]:
         return trade_service.get_positions(magic, symbol)
 
     def get_symbol_info(self, symbol: str):
-        return market_data_service.get_symbol_info(symbol: str)
+        return market_data_service.get_symbol_info(symbol)
 
     def get_symbol_info_tick(self, symbol: str):
-        return market_data_service.get_symbol_info_tick(symbol: str)
+        return market_data_service.get_symbol_info_tick(symbol)
 
     def close_all_positions(self, *args, **kwargs):
         return trade_service.close_all_positions(*args, **kwargs)

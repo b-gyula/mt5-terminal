@@ -1,0 +1,76 @@
+= Documentation
+:toc:
+:icons: font
+:url-quickref: https://docs.asciidoctor.org/asciidoc/latest/syntax-quick-reference/
+:hardbreaks:
+== /order endpoint (TradingView integration)
+URL: https://mt.coinmgr.net/trd/order
+
+Parameters:
+[%header,cols=">1,1,<8a"]
+|===
+| Param | type | Description
+//| *acc*   | int | Account id
+| *_volume_*  | [+\|-]decimal[%] | The amount to buy / sell (leading 0 can be omitted)
+- Must not be 0.
+- percentage, in the format {decimal}% which case only a fraction of the total actual balance is sold or bought
+- Special value `[+/-]all` is the same as 100%
+// Ending with ! close all position to have the exact amount of short/long position
+// $ prefix means, the volume is defined in the quote calculating with the latest price
+// If `?` added after = reduceOnly: true
+| *_buy /sell_* | string | The (positive) amount to buy / sell. Only one of them can be used instead of `amt`
+
+Can contain pair and price also in the format *{volume} {pair} [@] {price}*
+
+{volume} can be::
+
+- a positive decimal number. see `volume` for more details
+
+{pair}:: see `pair`
+
+{price}:: see `price` for details
+| pair | string | The asset pair to create order for in the form: {asset}[{quote}] +
+Notes::
+- _If set, {pair} in buy / sell is ignored_
+| price
+//| [+\|-\|~] decimal [%]
+| [[!][+\|-]\|~] decimal [%]
+| The limit (just numbers and `.`) or offset price (`+` or `-` in front of the number) for the order. +
+_If not set and {type} not `market` (or omitted) then the latest price is used_
+| type   | string
+| The order type: (m)arket / (l)imit / (t)railing stop / (s)top loss / take profit (tp)
+
+If not defined, then it's taken from the *{price}*: +
+- _limit_ if {price} is simple number or prefixed with `-` or `+`
+//- _post limit_ if {price} is prefixed with `!` +
+- _trailing stop_ if {price} is prefixed with `~` or %
+- _market_ if none of above
+// *TODO* close
+//| limit | decimal | limit price for  *TODO*
+//| lever | int | Spot margin leverage. If 0 (or omitted) -> spot order
+//| reduceOnly | boolean | use the actual position size instead of amount if the given amount is more than the position
+|===
+Notes::
+- *bold* parameters are mandatory
+- One and only one _italic_ parameter is required
+- The # character starts comments. Anything after it until the end of line is ignored.
+- Parameter values can be separated from their value by ' ', ':' or '=' characters.
+- Whitespace characters on both side of the value separator character are ignored
+
+Examples::
+[%header,cols="<5a,3a,1,1,1"]
+|===
+| Sample | Message | side | amount | price
+| Minimalist sample: sell 1 ETH @ market price for the base currency of the account like EUR
+| acc: 1 +
+sell: 1 ETH | sell | 1 ETH | {market}
+| Same as above, but longest form
+| acc: 1 +
+amt: -1 +
+pair: ETH/EUR +
+type: m | sell | 1 ETH | {market}
+| Sell 1 ETH for USD @ $4323
+|`acc: 1 +
+sell: 1 ETH/USD @ 4323`
+| sell | 1 ETH | $ 4323
+|===

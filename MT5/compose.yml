@@ -19,5 +19,6 @@ services:
       - path: .env
         required: false
     volumes:
-      - ./data:/root/app/data
+      - ./api/app:/root/app
+      - ./data:/root/data
     restart: unless-stopped

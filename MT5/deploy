@@ -1,0 +1,15 @@
+#!/bin/bash
+# script to rsync changed/new files to the target system $dest
+# application files: $desc/mt/MT5
+# backup is made of changed files in $dest/.bk/$actTime
+#set -x
+scriptDir=$(readlink -f "$(dirname "$0")")
+dest='root@gbot:~/mt/MT5'
+actTime=$(date '+%y-%m-%d_%H.%M.%S')
+[ -n "$1" ] && dest=$1
+declare -r basePrms="-thmvb --progress --log-file=$scriptDir/deploy.log --backup-dir=.bk/$actTime"
+declare -r commonPrms="$basePrms -rR"
+cd $scriptDir
+for src in 'api/app' 'api/pyproject.toml' assets compose.yml Dockerfile; do
+	rsync $commonPrms -b $src $dest
+done

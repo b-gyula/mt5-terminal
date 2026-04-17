@@ -1,62 +1,41 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from app.services.mt5_service import mt5_service
-from typing import List
 from datetime import datetime
 import MetaTrader5 as mt5
+from app.routers import error_response
 
-router = APIRouter(prefix="/symb", tags=["Symbols"])
+router = APIRouter(prefix="/symbol", tags=["Symbols"])
 
-def error_response(detail: str):
-    code, msg = mt5.last_error()
-    return HTTPException(status_code=500, detail={"error": detail, "mt5_code": code, "mt5_msg": msg})
 
-@router.get("/", response_model=List[str])
-def get_all_symbols():
-    try:
-        return mt5_service.get_symbols()
-    except Exception as e:
-        raise error_response(f"Error fetching symbols: {str(e)}")
+@router.get("/")
+def get_symbol(symbol: str = Query('')):
+    if symbol.strip():
+        try:
+            info = mt5_service.get_symbol_info(symbol)
+            if not info:
+                raise HTTPException(404, detail=f"Symbol {symbol} not found")
+            return info._asdict()
+        except Exception as e:
+            raise error_response(f"Error fetching symbol info for {symbol}: {str(e)}")
+    else:
+        try:
+            return mt5_service.get_symbols()
+        except Exception as e:
+            raise error_response(f"Error fetching symbol names: {str(e)}")
+
 
 @router.get("/{symbol}")
-def get_symbol(symbol: str):
-    try:
-        info = mt5_service.get_symbol_info(symbol)
-        if not info:
-            raise HTTPException(status_code=404, detail="Symbol not found")
-        return info
-    except Exception as e:
-        raise error_response(f"Error fetching symbol: {str(e)}")
+def get_symbol_path(symbol: str):
+    return get_symbol(symbol)
+
 
 @router.get("/ticks/{symbol}")
 def get_symbol_tick(symbol: str):
     try:
-        return mt5_service.get_symbol_info_tick(symbol)
+        return mt5_service.get_symbol_info_tick(symbol)._asdict()
     except Exception as e:
-        raise error_response(f"Error fetching tick: {str(e)}")
+        raise error_response(f"Error fetching tick for {symbol}: {str(e)}")
 
-
-# Support both /info/{symbol} and /info?symbol=...
-from fastapi import Query
-
-@router.get("/info/{symbol}")
-def get_symbol_info_path(symbol: str):
-    try:
-        info = mt5_service.get_symbol_info(symbol)
-        if not info:
-            return {"error": "Symbol not found", "symbol": symbol}
-        return info
-    except Exception as e:
-        raise error_response(f"Error fetching symbol info: {str(e)}")
-
-@router.get("/info")
-def get_symbol_info_query(symbol: str = Query(...)):
-    try:
-        info = mt5_service.get_symbol_info(symbol)
-        if not info:
-            return {"error": "Symbol not found", "symbol": symbol}
-        return info
-    except Exception as e:
-        raise error_response(f"Error fetching symbol info: {str(e)}")
 
 @router.get("/rates/pos")
 def fetch_data_pos(symbol: str, timeframe: str = "M1", num_bars: int = 100):
@@ -64,6 +43,7 @@ def fetch_data_pos(symbol: str, timeframe: str = "M1", num_bars: int = 100):
         return mt5_service.copy_rates_from_pos(symbol, timeframe, 0, num_bars)
     except Exception as e:
         raise error_response(f"Error fetching rates: {str(e)}")
+
 
 @router.get("/rates/range")
 def fetch_data_range(symbol: str, timeframe: str, start: datetime, end: datetime):
@@ -75,6 +55,7 @@ def fetch_data_range(symbol: str, timeframe: str, start: datetime, end: datetime
     except Exception as e:
         raise error_response(f"Error fetching rates range: {str(e)}")
 
+
 @router.get("/book/{symbol}")
 def get_book(symbol: str):
     try:
@@ -84,6 +65,7 @@ def get_book(symbol: str):
         return [b._asdict() for b in book]
     except Exception as e:
         raise error_response(f"Error fetching book: {str(e)}")
+
 
 @router.get("/check/{symbol}")
 def check_symbol(symbol: str):

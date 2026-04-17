@@ -19,7 +19,7 @@ class MT5Service:
     def get_symbols(self, *args, **kwargs):
         return market_data_service.get_symbols(*args, **kwargs)
 
-    def send_order(self, req: mt.TradeRequest):
+    def send_order(self, req: mt.TradeRequest) -> mt5.OrderSendResult:
         return trade_service.send_order(req)
     
     def send_market_order(self, *args, **kwargs):
@@ -34,7 +34,7 @@ class MT5Service:
     def get_positions(self, magic: int | None, symbol: str | None) -> tuple[mt5.TradePosition,...]:
         return trade_service.get_positions(magic, symbol)
 
-    def get_symbol_info(self, symbol: str):
+    def get_symbol_info(self, symbol: str) -> mt5.SymbolInfo:
         return market_data_service.get_symbol_info(symbol)
 
     def get_symbol_info_tick(self, symbol: str):

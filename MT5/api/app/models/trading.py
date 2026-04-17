@@ -1,6 +1,9 @@
-from typing import Optional, Final
+import math
+from typing import Optional, Final, override
 from pydantic import BaseModel, Field, field_validator
 from enum import StrEnum
+from app.models.mt5 import OrderType
+from app.utils.config import settings
 
 
 class MarketOrderRequest(BaseModel):
@@ -69,23 +72,44 @@ class Order_Type(StrEnum):
     STOP_LIMIT  = "sl"
     TrailingStop = "t"
 
+    def toMTOrderType(self, buy: bool) -> OrderType:
+        prefix = "BUY" if buy else "SELL"
+        postfix = ''
+        if self != Order_Type.Market:
+            if self == Order_Type.TrailingStop:
+                postfix = "STOP"
+            else:
+                postfix = self.name
+        o_type = prefix + ('_' if postfix else '') + postfix
+        return OrderType[o_type]
+
 
 class MayBeRelativeValue:
     'Absolute or relative value that can be initialized from a string'
     pct: bool = False
     value: float = 0.0
     pre: str = ""
+    o_value: str
     @property
     def relative(self)-> bool:
-        return self.pre or self.pct
+        return self.pct
 
-    def abs_value(self, abs: float) -> float:
+    def _pct_value(self, abs_total: float) -> float:
+        return self.value / 100 * abs_total
+
+    def abs_value(self, abs_total: float, step: float, min: float, digits: int) -> float:
+        v = self.value
         if self.pct:
-            return (1 + self.value/100) * abs
+            v = self._pct_value(abs_total)
         elif self.pre:
-            return abs + self.value
-        else:
-            return self.value
+            v += abs_total
+        v = round(round(abs(v) / step) * step, digits)
+        if v < min:
+            if settings.env.TRADE_ROUND_UP_TO_MIN:
+                v = min
+            else:
+                raise ValueError(f"{self.__class__.__name__} {self.o_value} rounded to {v} must be > {min}")
+        return v
 
 
 sDecRE: Final[str] = r"\d*\.?\d+" # decimal number allowing absence of 0
@@ -94,9 +118,10 @@ import re
 # @dataclass(frozen=True)
 class Price(MayBeRelativeValue):
     re: Final = re.compile(rf"([+-]|~)?({sDecRE})(%)?")
-    #   pp: Final = Combine(Opt(Char('+-') | '~') + ppDec + Opt('%'))
+
     def __init__(self, s: str, long: bool):
         if s:
+            self.o_value = s
             m: Final[re.Match] = self.re.fullmatch(s)
             if not m:
                 raise ValueError(
@@ -104,29 +129,42 @@ class Price(MayBeRelativeValue):
                 )
             object.__setattr__(self, "pre", m[1])
             object.__setattr__(self, "pct", m[3] == "%")
-            object.__setattr__(self, "value", float(('-' if m[1] == '-' or (not long and self.trailing) else '') + m[2]))
+            object.__setattr__(self, "value",
+                               float(('-' if m[1] == '-' or (not long and self.trailing) else '') + m[2]))
 
     @property
     def trailing(self) -> bool:
         return self.pre == '~'
 
+    @property
+    @override
+    def relative(self)-> bool:
+        return self.pre or self.pct
 
-class Amt(MayBeRelativeValue):
-    re: Final = re.compile(rf"([+-]?{sDecRE})(?P<pct>%)?|(?P<all>[aA][lL][lL])")
+    @override
+    def _pct_value(self, abs_total: float) -> float:
+        return (1 + self.value / 100) * abs_total
 
+
+class Volume(MayBeRelativeValue):
+    re: Final = re.compile(rf"([+-]?{sDecRE})(?P<pct>[%$])?|(?P<all>-?[aA][lL][lL])")
+    quote: bool = False
     @property
     def buy(self) -> bool:
         return self.value > 0
 
-    def __init__(self, s: str):
+    def __init__(self, s: str, price: float):
+        self.o_value = s
         m: Final[re.Match] = self.re.fullmatch(s)
         if not m:
             raise ValueError(
                 f"Unable to parse 'price' from '{s}'. Expected: [+|-]{{decimal}}[%]|all"
             )
-        if m[2]:
-            self.value = 1
+        if m['all']:
+            self.value = -100 if m['all'].startswith('-') else 100
             self.pct = True
         else:
             self.value = float(m[1])
             self.pct = m['pct'] == "%"
+            if m['pct'] == "$":
+                self.value /= price

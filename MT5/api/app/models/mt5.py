@@ -196,14 +196,17 @@ class OrderTime(IntEnum):
 
 @dataclass #(frozen=True)
 class TradeRequest:
-   'https://www.mql5.com/en/docs/constants/structures/mqltraderequest'
+   """ Wrapper for mt5.TradeRequest, allowing intellisense
+    https://www.mql5.com/en/docs/constants/structures/mqltraderequest
+   """
    symbol: str          # Trade symbol
    volume: float        # Requested volume for a deal in lots
    type: int            # Order type
-   deviation: int       # Maximal possible deviation from the requested price
 #TODO type_time: int = mt5.ORDER_TIME_GTC # Order expiration type
 #TODO type_filling: int = 0 # Order execution type https://www.mql5.com/en/docs/constants/tradingconstants/orderproperties#enum_order_type_filling
    price: float   # Price
+   action: int   # Trade operation type https://www.mql5.com/en/docs/python_metatrader5/mt5ordercheck_py#trade_request_actions
+   deviation: int       # Maximal possible deviation from the requested price
 #   stoplimit: float | None = None # StopLimit level of the order
 #   sl: float | None = None     # Stop Loss level of the order
    tp: float = 0.0     # Take Profit level of the order
@@ -212,7 +215,6 @@ class TradeRequest:
    #order: int           # Order ticket
    #ulong                         position;         # Position ticket
    #ulong                         position_by;      # The ticket of an opposite position
-   action: int = mt5.TRADE_ACTION_DEAL   # Trade operation type https://www.mql5.com/en/docs/python_metatrader5/mt5ordercheck_py#trade_request_actions
    magic: int  = 0         # Expert Advisor ID (magic number)
 
 TrdRequest = namedtuple(

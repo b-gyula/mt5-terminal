@@ -23,6 +23,7 @@ class MarketDataService:
         cache_manager.set(cache_key, symbols_list, ttl=3600)
         return symbols_list
 
+
     def get_timeframe(self, timeframe_str: str) -> int:
         try:
             return mt.Timeframe[timeframe_str.upper()].value
@@ -30,35 +31,36 @@ class MarketDataService:
             valid_timeframes = ', '.join([t.name for t in mt.Timeframe])
             raise ValueError(f"Invalid timeframe: '{timeframe_str}'. Valid options are: {valid_timeframes}.")
 
-    def get_symbol_info(self, symbol: str) -> Dict:
+
+    def get_symbol_info(self, symbol: str) -> mt5.SymbolInfo:
         cache_key = f"symbol_info_{symbol}"
         cached_info = cache_manager.get(cache_key)
         if cached_info:
             return cached_info
 
         mt5_connector.initialize()
-        info = mt5.symbol_info(symbol)
+        info: mt5.SymbolInfo = mt5.symbol_info(symbol)
         if not info:
             raise MT5SymbolNotFoundError(f"Symbol '{symbol}' not found.")
-        
-        info_dict = info._asdict()
-        cache_manager.set(cache_key, info_dict, ttl=300)  # Symbol info changes rarely
-        return info_dict
 
-    def get_symbol_info_tick(self, symbol: str) -> Dict:
+        cache_manager.set(cache_key, info, ttl=300)  # Symbol info changes rarely
+        return info
+
+
+    def get_symbol_info_tick(self, symbol: str) -> mt5.Tick:
         cache_key = f"symbol_tick_{symbol}"
         cached_tick = cache_manager.get(cache_key)
         if cached_tick:
             return cached_tick
 
         mt5_connector.initialize()
-        tick = mt5.symbol_info_tick(symbol)
+        tick: mt5.Tick = mt5.symbol_info_tick(symbol)
         if not tick:
             raise MT5SymbolNotFoundError(f"Tick data for '{symbol}' not found.")
-        
-        tick_dict = tick._asdict()
-        cache_manager.set(cache_key, tick_dict, ttl=1)  # Tick data changes frequently
-        return tick_dict
+
+        cache_manager.set(cache_key, tick, ttl=1)  # Tick data changes frequently
+        return tick
+
 
     def copy_rates_from_pos(self, symbol: str, timeframe: str, start_pos: int, count: int) -> Optional[List[Dict]]:
         if not mt5_connector.initialize(): return None

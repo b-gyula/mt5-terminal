@@ -28,13 +28,16 @@ class EnvSettings(BaseSettings):
     
     # Auth Settings
     API_KEY_SEED: str = ""
+
+    # if false, error is raised when the trade price or volume is less than the minimum required
+    TRADE_ROUND_UP_TO_MIN: bool = True
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 class Settings:
     def __init__(self):
         self.env = EnvSettings()
         self.base_dir = Path(__file__).resolve().parent.parent.parent
-        self.logs_dir = self.base_dir / "logs"
+        self.logs_dir = self.base_dir / "log"
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         self.data_dir = self.base_dir / "data"
         self.data_dir.mkdir(parents=True, exist_ok=True)

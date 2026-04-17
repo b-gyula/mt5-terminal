@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Callable
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 from typing import List, Optional, Final
@@ -12,7 +13,7 @@ import MetaTrader5 as mt5
 from pydantic import BaseModel, model_validator
 from app.models import mt5 as mt
 from app.services.connector import mt5_connector
-from app.models.trading import Order_Type, Amt, Price
+from app.models.trading import Order_Type, Volume, Price
 import re
 from app.routers import error_response
 
@@ -52,7 +53,7 @@ def create_trade(trade_data: TradeBase, session: Session = Depends(get_session))
 
 ws: Final = r"[ \t]*" # When .+, then trim needed!
 reBuy: Final = re.compile(
-    rf"(?P<a>{Amt.re.pattern}){ws}(?P<s>[a-zA-Z]+[\w.]+)?(?:{ws}(?:(s)@?|@){ws}(?P<p>.+))?"
+    rf"(?P<a>{Volume.re.pattern}){ws}(?P<s>[a-zA-Z]+[\w.]*)?(?:{ws}(?(s)@?|@){ws}(?P<p>.+))?"
 )
 
 
@@ -64,27 +65,13 @@ def parse_buy_field(value: str, field: str = 'f') -> tuple[str, str, str]:
         )
     return match['a'], match['s'], match['p']
 
-#from pyparsing import Word, Opt, nums, Combine, Char, FollowedBy, Regex, Suppress, DelimitedList, alphanums, alphas
-
-# def parse_order_fieldPP(field: str) -> tuple[str, str, str]:
-#     ppSymb = Word(alphas) - Word(alphanums + '.')
-#     pp = Regex(Amt.re) + Opt(ppSymb) | Suppress('@') + Opt(Regex(Price.re))
-#    m = pp.parse_string(field)
-    # if not match:
-    #     raise ValueError(
-    #         "Invalid order format: {field}. Expected format: {volume} [[{symbol}|@] [{price}]]]"
-    #     )
-    # vol, symbol, _, price = match.groups()
-    # return vol, symbol, price
-#    return '1','1','1'
-
 
 class SendOrderRequest(BaseModel):
     """ symbol, volume is mandatory
     They can be filled from buy or sell also
     """
-    buy:    str | None = None
-    sell:   str | None = None
+    buy:   float | str | None = None # In case like "buy: 1" 1 treated as float
+    sell:  float | str | None = None
     symbol: str
     volume: float | str
     type:   Order_Type | None = None
@@ -134,21 +121,21 @@ class SendOrderRequest(BaseModel):
             return Order_Type.LIMIT
 
 
-    def toTradeRequest(my, ask_price: float, bid_price: float):
+    def toTradeRequest(my, actPrice: float, si: mt5.SymbolInfo, get_positions: Callable[[int,str], tuple[mt5.TradePosition, ...]]):
         """ Convert to TradeRequest:
         - `buy`/`sell` can contain `volume` `symbol` [@] `price`
         - One and only one of `buy`/`sell`/`volume` may be defined
         - `volume` may be a -/+ float or %. In latter case the acctual total position size of the symbol needs to be reduced / increased with
         - `price` may be a -/+ float or % or prefixes with ~.
             - if prefixed with -/+, or % then treated as relative price
-            - if prefixed with ~ or no prefix but % then treated as trailing relative +/- price depending if volume > 0
+            - if prefixed with ~ or no prefix but % then treated as trailing relative +/- price depending on if volume > 0
 
-        :param ask_price:
-        :param bid_price:
+        :param actPrice:
+        :param si:
         :return: TradeRequest
         """
-        amt = Amt(my.volume)
-        actPrice = ask_price if amt.buy else bid_price
+        amt = Volume(my.volume, actPrice)
+
         price = Price(my.price, amt.buy)
 
         my.type = my.type or my.order_type_from_price(price)
@@ -158,16 +145,27 @@ class SendOrderRequest(BaseModel):
         if my.type != Order_Type.Market and not price.value:
             price.value = actPrice
 
-        if amt.pct: # TODO sum positions
-            mt5_service.get_positions(my.magic, my.symbol)
+        #TODO unsupported cases:
+        # vol buy: / sell -1
+        # - price > 100%
 
-        o_type = ('BUY' if amt.buy else 'SELL') + ('_' + my.type.name if my.type != Order_Type.Market else '')
+        #TODO Warning when price is "too far" from last: MAX_PRICE_DEVIATION
+
+
+        pos_total = 0
+        if amt.pct:
+            positions = get_positions(my.magic, my.symbol)
+            pos_total = sum(p.volume for p in positions)
+            if pos_total == 0:
+                raise HTTPException(422, f"No position found for {my.symbol}")
+        #TODO check if margin account (short allowed)
 
         r = mt.TradeRequest(
+            action  = mt5.TRADE_ACTION_DEAL if my.type == Order_Type.Market else mt5.TRADE_ACTION_PENDING,
             symbol  = my.symbol,
-            volume  = amt.value,
-            price   = price.abs_value(actPrice),
-            type    = mt.OrderType[o_type].value,
+            volume  = amt.abs_value(pos_total, si.volume_step, si.volume_min, si.digits),
+            price   = price.abs_value(actPrice, si.trade_tick_size, si.trade_tick_size, si.digits) if my.type != Order_Type.Market else 0,
+            type    = my.type.toMTOrderType(amt.buy).value,
             deviation = my.deviation,
             magic   = my.magic
             #sl=float(r.stop) if r.stop else 0.0,
@@ -195,17 +193,16 @@ def send_order(r: SendOrderRequest, session: Session = Depends(get_session)):
     except Exception as e:
         raise HTTPException(500, str(e))
 
-    tick = mt5.symbol_info_tick(r.symbol)
+    tick: mt5.Tick = mt5.symbol_info_tick(r.symbol)
     if tick is None:
         raise error_response(f"Symbol {r.symbol} not found")
-
-    request = r.toTradeRequest(tick.ask, tick.bid)
-
+    si: mt5.SymbolInfo = mt5_service.get_symbol_info(r.symbol)
     try:
+        request = r.toTradeRequest(tick.last, si, mt5_service.get_positions)
         result = mt5_service.send_order(request)
         if result is None:
             raise error_response("Error sending order")
-        return result
+        return result._asdict()
     except Exception as e:
         raise error_response(f"Error sending order: {str(e)}")
 
@@ -228,7 +225,7 @@ def send_market_order(
         )
         info = mt5_service.get_symbol_info(request.symbol)
         contract_size = info.get('trade_contract_size', 100000)
-        leverage = 500
+        leverage = 500 #TODO get it form account info
         order_size_usd = request.volume * contract_size * result.price
         capital_used = order_size_usd / leverage
         commission = helpers.calculate_commission(order_size_usd, request.symbol)

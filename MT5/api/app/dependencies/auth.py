@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 async def verify_api_key(
-    api_key: Optional[str] = Depends(api_key_header),
-    mt5_login: Optional[int] = Header(None, alias="X-MT5-Login"),
-    mt5_password: Optional[str] = Header(None, alias="X-MT5-Password"),
-    mt5_server: Optional[str] = Header(None, alias="X-MT5-Server")
+    api_key: Optional[str] = Depends(api_key_header)
+    # mt5_login: Optional[int] = Header(None, alias="X-MT5-Login"),
+    # mt5_password: Optional[str] = Header(None, alias="X-MT5-Password"),
+    # mt5_server: Optional[str] = Header(None, alias="X-MT5-Server")
 ):
     """
     Validates the provided API Key against the deterministic key from API_KEY_SEED.
@@ -34,7 +34,7 @@ async def verify_api_key(
 
     return {
         "api_key": api_key,
-        "mt5_login": mt5_login,
-        "mt5_password": mt5_password,
-        "mt5_server": mt5_server
+        # "mt5_login": mt5_login,
+        # "mt5_password": mt5_password,
+        # "mt5_server": mt5_server
     }

@@ -183,7 +183,7 @@ def positions(m: int, s: str) -> tuple[mt5.TradePosition,...]:
     ,({'buy':'1 AA', 'type': 'm'},
       {'volume': 1, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_BUY})
 ])
-def test_SendOrderRequest_toTradeRequest(prms, exp):
+def test_SendOrderRequest_toTradeRequest(prms, exp, trade_mode: int = mt5.SYMBOL_TRADE_MODE_FULL):
     """See readme.adoc /order endpoint (TradingView integration)"""
     # r = (SendOrderRequest(**prms)
     #      .toTradeRequest(1, mt5.SymbolInfo(SysInfo(volume_step=0.1,
@@ -195,7 +195,8 @@ def test_SendOrderRequest_toTradeRequest(prms, exp):
                                                     SysInfo(volume_step=0.1,
                                                             volume_min=0.2,
                                                             trade_tick_size=0.01,
-                                                            digits=2), positions)
+                                                            digits=2,
+                                                            trade_mode=trade_mode), positions)
         assert getattr(r,k) == v, k
 
 class MockTradePosition(NamedTuple):

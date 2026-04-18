@@ -8,9 +8,10 @@ router = APIRouter(prefix="/pos", tags=["Positions"])
 @router.get("/")
 def get_positions(magic: Optional[int] = None, symbol: Optional[str] = None):
     try:
-        return mt5_service.get_positions(magic, symbol)._asdict()
+        return [p._asdict() for p in mt5_service.get_positions(magic, symbol)]
     except Exception as e:
         raise error_response(f"Error fetching positions: {str(e)}")
+
 
 @router.post("/close")
 def close_position(ticket: int):
@@ -21,6 +22,7 @@ def close_position(ticket: int):
         return {"success": True, "result": result._asdict()}
     except Exception as e:
         raise error_response(f"Error closing position: {str(e)}")
+
 
 @router.post("/close_all")
 def close_all_positions(order_type: str = "all", magic: Optional[int] = None, symbol: Optional[str] = None):

@@ -21,4 +21,5 @@ services:
     volumes:
       - ./api/app:/root/app
       - ./data:/root/data
+      - ./log:/root/log
     restart: unless-stopped

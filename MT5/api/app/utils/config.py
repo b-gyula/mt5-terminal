@@ -8,7 +8,7 @@ class EnvSettings(BaseSettings):
     # API Settings
     API_NAME: str = "MetaTrader 5 API"
     API_DESCRIPTION: str = "High-performance MT5 Trading Backend"
-    API_VERSION: str = "0.2"
+    API_VERSION: str = "0.3"
     API_DEBUG_MODE: bool = False
     
     # Server Settings

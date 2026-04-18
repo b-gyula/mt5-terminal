@@ -16,6 +16,7 @@ from app.services.connector import mt5_connector
 from app.models.trading import Order_Type, Volume, Price
 import re
 from app.routers import error_response
+from app.utils.exceptions import MT5OrderError
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/trd", tags=["Trading"])
@@ -70,8 +71,8 @@ class SendOrderRequest(BaseModel):
     """ symbol, volume is mandatory
     They can be filled from buy or sell also
     """
-    buy:   float | str | None = None # In case like "buy: 1" 1 treated as float
-    sell:  float | str | None = None
+    buy:   str | float | None = None # In case like "buy: 1" 1 treated as float
+    sell:  str | float | None = None
     symbol: str
     volume: float | str
     type:   Order_Type | None = None
@@ -153,18 +154,26 @@ class SendOrderRequest(BaseModel):
 
 
         pos_total = 0
-        if amt.pct:
+        if amt.pct or si.trade_mode == mt5.SYMBOL_TRADE_MODE_LONGONLY:
             positions = get_positions(my.magic, my.symbol)
             pos_total = sum(p.volume for p in positions)
             if pos_total == 0:
-                raise HTTPException(422, f"No position found for {my.symbol}")
+                raise MT5OrderError(f"No position found for {my.symbol}")
         #TODO check if margin account (short allowed)
+
+        vol = amt.abs_value(pos_total, si.volume_step, si.volume_min, si.digits)
+        if not amt.buy and vol > pos_total and si.trade_mode == mt5.SYMBOL_TRADE_MODE_LONGONLY:
+            if pos_total :
+                vol = pos_total
+                log.warning( f"volume sell {vol} adjusted to actual position size {pos_total}")
+            else:
+                raise MT5OrderError(f"No position found for {my.symbol}")
 
         r = mt.TradeRequest(
             action  = mt5.TRADE_ACTION_DEAL if my.type == Order_Type.Market else mt5.TRADE_ACTION_PENDING,
             symbol  = my.symbol,
-            volume  = amt.abs_value(pos_total, si.volume_step, si.volume_min, si.digits),
-            price   = price.abs_value(actPrice, si.trade_tick_size, si.trade_tick_size, si.digits) if my.type != Order_Type.Market else 0,
+            volume  = vol,
+            price   = price.abs_value(actPrice, si.trade_tick_size, si.trade_tick_size, si.digits) if my.type != Order_Type.Market else 0.0,
             type    = my.type.toMTOrderType(amt.buy).value,
             deviation = my.deviation,
             magic   = my.magic
@@ -195,13 +204,11 @@ def send_order(r: SendOrderRequest, session: Session = Depends(get_session)):
 
     tick: mt5.Tick = mt5.symbol_info_tick(r.symbol)
     if tick is None:
-        raise error_response(f"Symbol {r.symbol} not found")
+        raise error_response(f"Symbol '{r.symbol}' not found")
     si: mt5.SymbolInfo = mt5_service.get_symbol_info(r.symbol)
     try:
-        request = r.toTradeRequest(tick.last, si, mt5_service.get_positions)
+        request = r.toTradeRequest(tick.last if tick.last > 0 else (tick.bid+tick.ask)/2, si, mt5_service.get_positions)
         result = mt5_service.send_order(request)
-        if result is None:
-            raise error_response("Error sending order")
         return result._asdict()
     except Exception as e:
         raise error_response(f"Error sending order: {str(e)}")

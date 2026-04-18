@@ -9,13 +9,14 @@ logger = logging.getLogger(__name__)
 
 
 class TradeService:
-    def send_order(self, req: mt.TradeRequest):
+    def send_order(self, req: mt.TradeRequest) -> mt5.OrderSendResult:
+        """https://www.mql5.com/en/docs/python_metatrader5/mt5ordersend_py"""
         mt5_connector.initialize()
         # prms = class_attrs_to_dict(req)
         prms = vars(req) #._asdict()
         result = mt5.order_send(prms)
-        if result.retcode != mt5.TRADE_RETCODE_DONE:
-            raise MT5OrderError(f"Order failed: {result.comment}")
+        if result is None or result.retcode != mt5.TRADE_RETCODE_DONE:
+            raise MT5OrderError(f"Order failed: {result.comment if result else ''}")
         return result
 
 
@@ -87,11 +88,7 @@ class TradeService:
         return result
 
 
-    def close_position(
-        self,
-        ticket: int,
-        deviation: int = 20,
-        comment: str = "",
+    def close_position( self, ticket: int, deviation: int = 20, comment: str = "",
         type_filling: str = "IOC",
     ):
         if not mt5_connector.initialize():

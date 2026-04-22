@@ -101,6 +101,11 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(MT5BaseException)
     async def mt5_exception_handler(request: Request, exc: MT5BaseException):
+        # Log the exception with full stack trace
+        logger.error(
+            f"{exc.__class__.__name__}: {exc.code}: {exc.message} in {request.url.path}"
+            # ,exc_info=True  # This includes the full stack trace
+        )
         return JSONResponse(
             status_code=400,
             content={"error": exc.message, "code": exc.code},

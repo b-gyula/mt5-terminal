@@ -1,9 +1,8 @@
 from fastapi import APIRouter
 from app.services.mt5_service import mt5_service
-from app.models.mt5 import RETCODE_DESCRIPTIONS
 from app.routers import error_response
 
-router = APIRouter(prefix="/acc", tags=["Account"])
+router = APIRouter(prefix="/account", tags=["Account"])
 
 @router.get("/health")
 def health():
@@ -15,19 +14,15 @@ def health():
         raise error_response(f"Error checking health: {str(e)}")
 
 
-@router.get("/last_error")
-def get_last_error():
-    try:
-        error = mt5_service.last_error()
-        return {
-            "error_code": error[0],
-            "error_message": error[1],
-            "description": RETCODE_DESCRIPTIONS.get(error[0], "Unknown error code")
-        }
-    except Exception as e:
-        raise error_response(f"Error getting last error: {str(e)}")
+# @router.get("/last_error")
+# def get_last_error():
+#     try:
+#         error = mt5_service.last_error()
+#         return {
+#             "error_code": error[0],
+#             "error_message": error[1],
+#             "description": RETCODE_DESCRIPTIONS.get(error[0], "Unknown error code")
+#         }
+#     except Exception as e:
+#         raise error_response(f"Error getting last error: {str(e)}")
 
-
-@router.get("/retcodes")
-def get_retcodes():
-    return RETCODE_DESCRIPTIONS

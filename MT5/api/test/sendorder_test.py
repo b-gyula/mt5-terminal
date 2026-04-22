@@ -117,7 +117,7 @@ def test_SendOrderRequest(prms, exp):
 
 # Mock SymbolInfo for testing - provides only the fields needed by toTradeRequest
 # MT5's SymbolInfo is a 96-field namedtuple, but we only need these 4 fields
-SysInfo = namedtuple('SysInfo', 'volume_step volume_min trade_tick_size digits')
+SysInfo = namedtuple('SysInfo', 'volume_step volume_min trade_tick_size digits trade_mode')
 
 def positions(m: int, s: str) -> tuple[mt5.TradePosition,...]:
     if s =='AA':
@@ -126,36 +126,38 @@ def positions(m: int, s: str) -> tuple[mt5.TradePosition,...]:
         return MockTradePosition(volume=-3),
 
 @pytest.mark.parametrize("prms, exp",[
-     ({'sell':'.21 AA'},
-      {'volume': 0.2, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL})
-    ,({'buy':'.1 AA'},
-      {'volume': 0.2, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_BUY})
-    ,({'buy':'1 AA @ 2'},
-      {'volume': 1, 'symbol': 'AA', 'price': 2, 'type': mt5.ORDER_TYPE_BUY_LIMIT})
-    ,({'buy':'1 AA', 'type': 'l'},
-      {'volume': 1, 'symbol': 'AA', 'price': 1, 'type': mt5.ORDER_TYPE_BUY_LIMIT})
+    ({'volume': -1, 'symbol': 'AA', 'price': 4}, # price float
+      {'volume': 1, 'symbol': 'AA', 'price': 4, 'type': mt5.ORDER_TYPE_SELL_LIMIT}),
+    ({'sell':'.21 AA'},
+      {'volume': 0.2, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL}),
+    ({'buy':'.1 AA'},
+      {'volume': 0.2, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_BUY}),
+    ({'buy':'1 AA @ 2'},
+      {'volume': 1, 'symbol': 'AA', 'price': 2, 'type': mt5.ORDER_TYPE_BUY_LIMIT}),
+    ({'buy':'1 AA', 'type': 'l'},
+      {'volume': 1, 'symbol': 'AA', 'price': 1, 'type': mt5.ORDER_TYPE_BUY_LIMIT}),
     # Sell orders
-    ,({'sell':'1 AA @ 2'},
-      {'volume': 1, 'symbol': 'AA', 'price': 2, 'type': mt5.ORDER_TYPE_SELL_LIMIT})
-    ,({'sell':'1 AA', 'type': 'l'},
-      {'volume': 1, 'symbol': 'AA', 'price': 1, 'type': mt5.ORDER_TYPE_SELL_LIMIT})
-    ,({'buy':'10% AA'},
-      {'volume': (3-1)*.1, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_BUY})
-    ,({'sell':'10% AA'},
-      {'volume': (3-1)*.1, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL})
-    ,({'sell':'10% BB'},
-      {'volume': round(3*.1,1), 'symbol': 'BB', 'price': 0, 'type': mt5.ORDER_TYPE_SELL})
+    ({'sell':'1 AA @ 2'},
+      {'volume': 1, 'symbol': 'AA', 'price': 2, 'type': mt5.ORDER_TYPE_SELL_LIMIT}),
+    ({'sell':'1 AA', 'type': 'l'},
+      {'volume': 1, 'symbol': 'AA', 'price': 1, 'type': mt5.ORDER_TYPE_SELL_LIMIT}),
+    ({'buy':'10% AA'},
+      {'volume': (3-1)*.1, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_BUY}),
+    ({'sell':'10% AA'},
+      {'volume': (3-1)*.1, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL}),
+    ({'sell':'10% BB'},
+      {'volume': round(3*.1,1), 'symbol': 'BB', 'price': 0, 'type': mt5.ORDER_TYPE_SELL}),
     # All volume (same as 100%)
     # ,({'buy':'all AA'},
     #   {'volume': 1, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_BUY})
-    ,({'sell':'all AA'},
-      {'volume': 2, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL})
-    ,({'volume':'-all', 'symbol':'AA'},
-     {'volume': 2, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL})
-    ,({'volume':'-100%', 'symbol':'AA'},
-      {'volume': 2, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL})
-    ,({'volume':'-150%', 'symbol':'AA'},
-      {'volume': 3, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL})
+    ({'sell':'all AA'},
+      {'volume': 2, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL}),
+    ({'volume':'-all', 'symbol':'AA'},
+     {'volume': 2, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL}),
+    ({'volume':'-100%', 'symbol':'AA'},
+      {'volume': 2, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL}),
+    ({'volume':'-150%', 'symbol':'AA'},
+      {'volume': 3, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL}),
     # Positive all (buy all)
     # ,({'buy':'+all AA'},
     #   {'volume': 1, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_BUY})
@@ -163,25 +165,27 @@ def positions(m: int, s: str) -> tuple[mt5.TradePosition,...]:
     # ,({'sell':'+all AA'},
     #   {'volume': -1, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL})
  # Relative price offset (+0.5 = limit above last)
-    ,({'buy':'1 AA +0.5'},
-      {'volume': 1, 'symbol': 'AA', 'price': 1.5, 'type': mt5.ORDER_TYPE_BUY_LIMIT})
-    ,({'buy':'1 AA -0.5'},
-      {'volume': 1, 'symbol': 'AA', 'price': 0.5, 'type': mt5.ORDER_TYPE_BUY_LIMIT})
+    ({'buy':'1 AA +0.5'},
+      {'volume': 1, 'symbol': 'AA', 'price': 1.5, 'type': mt5.ORDER_TYPE_BUY_LIMIT}),
+    ({'buy':'1 AA -0.5'},
+      {'volume': 1, 'symbol': 'AA', 'price': 0.5, 'type': mt5.ORDER_TYPE_BUY_LIMIT}),
    # Trailing stop (~ prefix, see readme.adoc)
-    ,({'buy':'1 AA ~0.5'},
-      {'volume': 1, 'symbol': 'AA', 'price': 1.5, 'type': mt5.ORDER_TYPE_BUY_STOP})
-    ,({'sell':'1 AA ~0.5'},
-      {'volume': 1, 'symbol': 'AA', 'price': 0.5, 'type': mt5.ORDER_TYPE_SELL_STOP})
+    ({'buy':'1 AA ~0.5'},
+      {'volume': 1, 'symbol': 'AA', 'price': 1.5, 'type': mt5.ORDER_TYPE_BUY_STOP}),
+    ({'sell':'1 AA ~0.5'},
+      {'volume': 1, 'symbol': 'AA', 'price': 0.5, 'type': mt5.ORDER_TYPE_SELL_STOP}),
  # Price percentage
-    ,({'buy':'1 AA 1%'}, # trailing
-      {'volume': 1, 'symbol': 'AA', 'price': 1.01, 'type': mt5.ORDER_TYPE_BUY_STOP})
-    ,({'sell':'1 AA -1%'}, # relative limit
-      {'volume': 1, 'symbol': 'AA', 'price': 0.99, 'type': mt5.ORDER_TYPE_SELL_LIMIT})
-    ,({'buy':'1 AA -1%'}, # relative limit
-      {'volume': 1, 'symbol': 'AA', 'price': 0.99, 'type': mt5.ORDER_TYPE_BUY_LIMIT})
+    ({'buy':'1 AA 1%'}, # trailing
+      {'volume': 1, 'symbol': 'AA', 'price': 1.01, 'type': mt5.ORDER_TYPE_BUY_STOP}),
+    ({'sell':'1 AA -1%'}, # relative limit
+      {'volume': 1, 'symbol': 'AA', 'price': 0.99, 'type': mt5.ORDER_TYPE_SELL_LIMIT}),
+    ({'buy':'1 AA -1%'}, # relative limit
+      {'volume': 1, 'symbol': 'AA', 'price': 0.99, 'type': mt5.ORDER_TYPE_BUY_LIMIT}),
  # Explicit order types (see readme.adoc: m/l/t/s/tp)
-    ,({'buy':'1 AA', 'type': 'm'},
-      {'volume': 1, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_BUY})
+    ({'buy':'1 AA', 'type': 'm'},
+      {'volume': 1, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_BUY}),
+    ({'volume': 1, 'symbol': 'AA'}, # volume float
+      {'volume': 1, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_BUY}),
 ])
 def test_SendOrderRequest_toTradeRequest(prms, exp, trade_mode: int = mt5.SYMBOL_TRADE_MODE_FULL):
     """See readme.adoc /order endpoint (TradingView integration)"""

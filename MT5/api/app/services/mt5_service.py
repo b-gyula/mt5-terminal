@@ -7,8 +7,8 @@ from .history import history_service
 
 class MT5Service:
     @property
-    def _initialized(self):
-        return mt5_connector._initialized
+    def initialized(self):
+        return mt5_connector.initialized
 
     def initialize(self):
         return mt5_connector.initialize()
@@ -52,11 +52,11 @@ class MT5Service:
     def get_history_deals(self, *args, **kwargs):
         return history_service.get_history_deals(*args, **kwargs)
 
-    def get_terminal_info(self, *args, **kwargs):
-        return mt5_connector.get_terminal_info(*args, **kwargs)
+    def get_terminal_info(self):
+        return mt5_connector.get_terminal_info()
 
-    def get_account_info(self, *args, **kwargs):
-        return mt5_connector.get_account_info(*args, **kwargs)
+    def get_account_info(self):
+        return mt5_connector.get_account_info()
 
     def get_history_orders(self, *args, **kwargs):
         return history_service.get_history_orders(*args, **kwargs)

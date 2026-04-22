@@ -1,4 +1,5 @@
 import math
+from re import Match
 from typing import Optional, Final, override
 from pydantic import BaseModel, Field, field_validator
 from enum import StrEnum
@@ -83,7 +84,7 @@ class Order_Type(StrEnum):
         o_type = prefix + ('_' if postfix else '') + postfix
         return OrderType[o_type]
 
-
+import re
 class MayBeRelativeValue:
     'Absolute or relative value that can be initialized from a string'
     pct: bool = False
@@ -111,26 +112,32 @@ class MayBeRelativeValue:
                 raise ValueError(f"{self.__class__.__name__} {self.o_value} rounded to {v} must be > {min}")
         return v
 
+    def init(self, v: float | str | None) -> Match | None:
+        self.o_value = v
+        if v:
+            if type(v) == float:
+                self.value = v
+            elif type(v) == str:
+                m: Final[re.Match] = self.re.fullmatch(v)
+                if not m:
+                    raise ValueError(
+                        f"Unable to parse '{self.__class__.__name__}' from '{v}'. Expected: {self.expected}"
+                    )
+                return m
 
 sDecRE: Final[str] = r"\d*\.?\d+" # decimal number allowing absence of 0
 
-import re
+
 # @dataclass(frozen=True)
 class Price(MayBeRelativeValue):
     re: Final = re.compile(rf"([+-]|~)?({sDecRE})(%)?")
-
-    def __init__(self, s: str, long: bool):
-        if s:
-            self.o_value = s
-            m: Final[re.Match] = self.re.fullmatch(s)
-            if not m:
-                raise ValueError(
-                    f"Unable to parse 'price' from '{s}'. Expected: [+|-]|[~]{{decimal}}[%]"
-                )
-            object.__setattr__(self, "pre", m[1])
-            object.__setattr__(self, "pct", m[3] == "%")
-            object.__setattr__(self, "value",
-                               float(('-' if m[1] == '-' or (not long and self.trailing) else '') + m[2]))
+    expected: Final[str] = '[+|-]|[~]{decimal}[%]'
+    def __init__(self, s: float | str | None, long: bool):
+        m: Final[re.Match] = self.init(s)
+        if m:
+            self.pre = m[1]
+            self.pct = m[3] == "%"
+            self.value = float(('-' if m[1] == '-' or (not long and self.trailing) else '') + m[2])
 
     @property
     def trailing(self) -> bool:
@@ -148,23 +155,20 @@ class Price(MayBeRelativeValue):
 
 class Volume(MayBeRelativeValue):
     re: Final = re.compile(rf"([+-]?{sDecRE})(?P<pct>[%$])?|(?P<all>-?[aA][lL][lL])")
+    expected: Final = '[+|-]{{decimal}}[%]|all'
     quote: bool = False
     @property
     def buy(self) -> bool:
         return self.value > 0
 
-    def __init__(self, s: str, price: float):
-        self.o_value = s
-        m: Final[re.Match] = self.re.fullmatch(s)
-        if not m:
-            raise ValueError(
-                f"Unable to parse 'price' from '{s}'. Expected: [+|-]{{decimal}}[%]|all"
-            )
-        if m['all']:
-            self.value = -100 if m['all'].startswith('-') else 100
-            self.pct = True
-        else:
-            self.value = float(m[1])
-            self.pct = m['pct'] == "%"
-            if m['pct'] == "$":
-                self.value /= price
+    def __init__(self, s: float | str | None, price: float):
+        m: Final[re.Match] = self.init(s)
+        if m:
+            if m['all']:
+                self.value = -100 if m['all'].startswith('-') else 100
+                self.pct = True
+            else:
+                self.value = float(m[1])
+                self.pct = m['pct'] == "%"
+                if m['pct'] == "$":
+                    self.value /= price

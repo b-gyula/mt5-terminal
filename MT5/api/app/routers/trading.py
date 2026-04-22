@@ -12,14 +12,13 @@ from app.utils import helpers
 import MetaTrader5 as mt5
 from pydantic import BaseModel, model_validator
 from app.models import mt5 as mt
-from app.services.connector import mt5_connector
 from app.models.trading import Order_Type, Volume, Price
 import re
 from app.routers import error_response
 from app.utils.exceptions import MT5OrderError
 
 log = logging.getLogger(__name__)
-router = APIRouter(prefix="/trd", tags=["Trading"])
+router = APIRouter(prefix="/trade", tags=["Trading"])
 
 @router.get("/", response_model=List[Trade])
 def get_trades(
@@ -152,18 +151,16 @@ class SendOrderRequest(BaseModel):
 
         #TODO Warning when price is "too far" from last: MAX_PRICE_DEVIATION
 
-
         pos_total = 0
         if amt.pct or si.trade_mode == mt5.SYMBOL_TRADE_MODE_LONGONLY:
             positions = get_positions(my.magic, my.symbol)
             pos_total = sum(p.volume for p in positions)
             if pos_total == 0:
                 raise MT5OrderError(f"No position found for {my.symbol}")
-        #TODO check if margin account (short allowed)
 
         vol = amt.abs_value(pos_total, si.volume_step, si.volume_min, si.digits)
         if not amt.buy and vol > pos_total and si.trade_mode == mt5.SYMBOL_TRADE_MODE_LONGONLY:
-            if pos_total :
+            if pos_total:
                 vol = pos_total
                 log.warning( f"volume sell {vol} adjusted to actual position size {pos_total}")
             else:
@@ -195,29 +192,19 @@ def checkSet2x(value: str, values, field: str, other: str):
 
 @router.post("/order", status_code=status.HTTP_201_CREATED)
 def send_order(r: SendOrderRequest, session: Session = Depends(get_session)):
-    # if not r.symbol or not r.volume:
-    #     raise HTTPException(400, "symbol and volume are required")
-    try:
-        mt5_connector.initialize()
-    except Exception as e:
-        raise HTTPException(500, str(e))
-
-    tick: mt5.Tick = mt5.symbol_info_tick(r.symbol)
-    if tick is None:
-        raise error_response(f"Symbol '{r.symbol}' not found")
-    si: mt5.SymbolInfo = mt5_service.get_symbol_info(r.symbol)
-    try:
-        request = r.toTradeRequest(tick.last if tick.last > 0 else (tick.bid+tick.ask)/2, si, mt5_service.get_positions)
+    # try:
+        tick: mt5.Tick = mt5_service.get_symbol_info_tick(r.symbol)
+        si: mt5.SymbolInfo = mt5_service.get_symbol_info(r.symbol)
+        request = r.toTradeRequest(tick.last if tick.last > 0 else (tick.bid+tick.ask)/2, si,
+                                   mt5_service.get_positions)
         result = mt5_service.send_order(request)
         return result._asdict()
-    except Exception as e:
-        raise error_response(f"Error sending order: {str(e)}")
+    # except Exception as e:
+    #     raise error_response(f"Error sending order: {str(e)}")
 
 
 @router.post("/order/market", status_code=status.HTTP_201_CREATED)
-def send_market_order(
-    request: MarketOrderRequest, session: Session = Depends(get_session)
-):
+def send_market_order(request: MarketOrderRequest, session: Session = Depends(get_session)):
     try:
         result = mt5_service.send_market_order(
             symbol=request.symbol,

@@ -8,13 +8,13 @@ class EnvSettings(BaseSettings):
     # API Settings
     API_NAME: str = "MetaTrader 5 API"
     API_DESCRIPTION: str = "High-performance MT5 Trading Backend"
-    API_VERSION: str = "0.3"
+    API_VERSION: str = "0.4"
     API_DEBUG_MODE: bool = False
     
     # Server Settings
     HOST: str = "0.0.0.0"
     PORT: int = 8000
-    ENV_STATE: str = DEV_STATE
+    ENV_STATE: str = ""
     LOG_LEVEL: str =  "DEBUG" if ENV_STATE == DEV_STATE else "INFO"
 
     # Database Settings

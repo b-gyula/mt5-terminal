@@ -1,3 +1,6 @@
+from typing import Final
+CHARSET_UTF8: Final = "utf-8"
+
 METALS = ['XAUUSD', 'XAGUSD', 'XAUEUR']
 OILS = ['BRN', 'NG', 'WTI']
 CRYPTOCURRENCIES = [

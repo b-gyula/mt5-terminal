@@ -46,10 +46,12 @@ This repository packages everything needed to run a reliable MT5 instance on a L
     ```bash
     docker compose up -d --build
     ```
-
+    At first run installing MetaTrader takes a couple of minutes and requires some clicks through VNC.
+    See: docs/server-setup.md
+    
 4.  **Access**:
-    - **MT5 VNC (Web)**: `http://localhost:6901` (User: `mt5_user`, Pass: `password`)
-    - **FastAPI Docs**: `http://localhost:8000/docs`
+    - **MT5 VNC**: `localhost:5900` (Password: VNC_PASSWORD in .env)
+    - **FastAPI Docs**: `http://localhost/docs` (on host machine)
 
 > [!IMPORTANT]
 > **Initial Setup Required**: You MUST log in to the MetaTrader 5 terminal via the VNC interface at least once to complete the initial setup (accepting terms, choosing server, etc.) before the FastAPI service can successfully connect to the terminal.

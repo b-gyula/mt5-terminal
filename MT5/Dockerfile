@@ -71,7 +71,7 @@ ADD https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/f2
 # Copy assets, api and install Python dependencies
 COPY assets .
 #COPY api/app /root/app/
-COPY api/pyproject.toml ./
+#COPY api/pyproject.toml ./
 
 RUN  mkdir -p ${HOME}/Desktop && \
     cp metatrader.desktop ${HOME}/Desktop/ && \

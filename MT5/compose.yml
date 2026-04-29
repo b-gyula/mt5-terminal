@@ -16,10 +16,11 @@ services:
       MT5_PASSWORD: ${MT5_PASSWORD}
       MT5_SERVER: ${MT5_SERVER}
     env_file:
-      - path: .env
+      - path: ./api/.env
         required: false
     volumes:
-      - ./api/app:/root/app
+      - ./api:/root/api
       - ./data:/root/data
       - ./log:/root/log
     restart: unless-stopped
+

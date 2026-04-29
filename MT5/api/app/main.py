@@ -1,5 +1,6 @@
 from typing import Final
-from app.utils.config import settings
+from fastapi.exceptions import RequestValidationError
+from app.utils.config import settings, DEV_STATE
 # import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Depends
@@ -15,13 +16,14 @@ from app.utils.logger import logger_instance
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.utils.trailing import trailing_stop_handler
 from prometheus_fastapi_instrumentator import Instrumentator
+from app.utils.constants import CHARSET_UTF8
+from app.utils.helpers import raw_body
 
 logger = logger_instance.get_logger()
 scheduler = BackgroundScheduler()
 
 API_PREFIX: Final = ""  # "/api/v1"
 
-CHARSET_UTF8: Final = "utf-8"
 CHARSET_LATIN: Final = "latin-1"
 HDR_CONTENT_TYPE: Final ="content-type"
 MEDIA_TYPE_JSON: Final = "application/json"
@@ -56,12 +58,13 @@ async def lifespan(app: FastAPI):
         scheduler.shutdown()
 
 
+
 def create_app() -> FastAPI:
     app = FastAPI(
-        title=settings.env.API_NAME,
-        description=settings.env.API_DESCRIPTION,
-        version=settings.env.API_VERSION,
-        debug=settings.env.API_DEBUG_MODE,
+        title=settings.API_NAME,
+        description=settings.API_DESCRIPTION,
+        version=settings.API_VERSION,
+        debug=settings.env.ENV_STATE == DEV_STATE,
         lifespan=lifespan
     )
 
@@ -75,46 +78,65 @@ def create_app() -> FastAPI:
 
     @app.middleware("http")
     async def yamlDeserializer(request: Request, call_next):
-        #content_type, params = parse_options_header(  )
+        """
+        Middleware to handle text/plain POST requests as YAML.
         
+        - Detects requests with Content-Type: text/plain
+        - Parses the body as YAML
+        - Converts to JSON for FastAPI's body parser
+        - Stores original body in request.state.raw_body for logging
+        """
         if request.method in ("POST", "PUT", "PATCH") and \
            MEDIA_TYPE_TEXT in request.headers.get(HDR_CONTENT_TYPE, MEDIA_TYPE_TEXT):
             body = await request.body()
             if body:
                 try:
-                    # Replace the content-type header in the ASGI scope so
-                    # FastAPI's body parser treats the rewritten body as JSON.
-            
-                    # Get charset (default to utf-8 if not specified)
-                    #charset = params.get(b"charset", b"utf-8").decode(CHARSET_LATIN)
+                    # Decode the original body
+                    # Store original body in request state for access in routes
+                    request.state.raw_body = body.decode(CHARSET_UTF8)
+
+                    # Parse YAML and convert to JSON for FastAPI
                     data = yaml.safe_load(body)
                     request._body = json.dumps(data).encode(CHARSET_UTF8)
+                    
+                    # Replace content-type header so FastAPI treats body as JSON
                     hdrs = request.headers.mutablecopy()
-                    hdrs[HDR_CONTENT_TYPE] = "application/json; charset=utf-8"
-                    hdrs['content-length'] = str(len(request._body)) #.encode(CHARSET_UTF8)
+                    hdrs[HDR_CONTENT_TYPE] = f"{MEDIA_TYPE_JSON}; charset={CHARSET_UTF8}"
+                    hdrs['content-length'] = str(len(request._body))
                     request.scope["headers"] = hdrs.raw
 
                 except yaml.YAMLError as e:
-                    logger.warning(f"Unable to parse request:\n'{body.decode(CHARSET_LATIN)}'\n as YAML: {e}")
+                    logger.warning(f"Unable to parse request:\n'{body.decode(CHARSET_LATIN)}'\n" +
+                                   f" as YAML: {e}")
 
         return await call_next(request)
 
+    async def send_error_mail(r: Request, ex: Exception):
+        from app.utils import email
+        if r.url.path in ('/trade/order'):
+            email.send_order_mail(await raw_body(r), None, ex)
+
+    @app.exception_handler(RequestValidationError)
+    async def valueError_exception_handler(request: Request, ex: RequestValidationError):
+        await send_error_mail(request, ex)
+        from fastapi.encoders import jsonable_encoder
+        return JSONResponse(jsonable_encoder(ex.errors(), exclude=('ctx',)), 422)
+        # return JSONResponse({'error':jsonable_encoder(exc.errors())}, 422)
+
     @app.exception_handler(MT5BaseException)
-    async def mt5_exception_handler(request: Request, exc: MT5BaseException):
+    async def mt5_exception_handler(request: Request, ex: MT5BaseException):
+        await send_error_mail(request, ex)
         # Log the exception with full stack trace
         logger.error(
-            f"{exc.__class__.__name__}: {exc.code}: {exc.message} in {request.url.path}"
+            f"{ex.__class__.__name__}: {ex.code}: {ex.message} in {request.url.path}"
             # ,exc_info=True  # This includes the full stack trace
         )
-        return JSONResponse(
-            status_code=400,
-            content={"error": exc.message, "code": exc.code},
-        )
+        return JSONResponse({"error": ex.message, "code": ex.code}, 400)
 
     # Health Check (Internal/System)
     @app.get("/health", tags=["System"])
     def health_check():
-        return {"status": "ok", "version": settings.env.API_VERSION}
+        return {"status": "ok", "version": settings.API_VERSION}
 
     # Auth routes (Unprotected)
     app.include_router(

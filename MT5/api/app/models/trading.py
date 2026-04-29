@@ -1,11 +1,16 @@
-import math
 from re import Match
 from typing import Optional, Final, override
-from pydantic import BaseModel, Field, field_validator
+from fastapi import HTTPException
+from pydantic import Field, field_validator
 from enum import StrEnum
 from app.models.mt5 import OrderType
 from app.utils.config import settings
-
+from pydantic import BaseModel, model_validator
+from app.models import mt5 as mt
+from collections.abc import Callable
+from app.utils.exceptions import MT5OrderError
+import MetaTrader5 as mt5
+from logging import Logger
 
 class MarketOrderRequest(BaseModel):
     symbol: str
@@ -91,6 +96,8 @@ class MayBeRelativeValue:
     value: float = 0.0
     pre: str = ""
     o_value: str
+    _re: re.Pattern
+    _expected: str
     @property
     def relative(self)-> bool:
         return self.pct
@@ -118,10 +125,10 @@ class MayBeRelativeValue:
             if type(v) == float:
                 self.value = v
             elif type(v) == str:
-                m: Final[re.Match] = self.re.fullmatch(v)
+                m: Final[re.Match] = self._re.fullmatch(v)
                 if not m:
                     raise ValueError(
-                        f"Unable to parse '{self.__class__.__name__}' from '{v}'. Expected: {self.expected}"
+                        f"Unable to parse '{self.__class__.__name__}' from '{v}'. Expected: {self._expected}"
                     )
                 return m
 
@@ -130,8 +137,8 @@ sDecRE: Final[str] = r"\d*\.?\d+" # decimal number allowing absence of 0
 
 # @dataclass(frozen=True)
 class Price(MayBeRelativeValue):
-    re: Final = re.compile(rf"([+-]|~)?({sDecRE})(%)?")
-    expected: Final[str] = '[+|-]|[~]{decimal}[%]'
+    _re: Final = re.compile(rf"([+-]|~)?({sDecRE})(%)?")
+    _expected: Final[str] = '[+|-]|[~]{decimal}[%]'
     def __init__(self, s: float | str | None, long: bool):
         m: Final[re.Match] = self.init(s)
         if m:
@@ -154,8 +161,8 @@ class Price(MayBeRelativeValue):
 
 
 class Volume(MayBeRelativeValue):
-    re: Final = re.compile(rf"([+-]?{sDecRE})(?P<pct>[%$])?|(?P<all>-?[aA][lL][lL])")
-    expected: Final = '[+|-]{{decimal}}[%]|all'
+    _re: Final = re.compile(rf"([+-]?{sDecRE})(?P<pct>[%$])?|(?P<all>-?[aA][lL][lL])")
+    _expected: Final = '[+|-]{{decimal}}[%]|all'
     quote: bool = False
     @property
     def buy(self) -> bool:
@@ -172,3 +179,148 @@ class Volume(MayBeRelativeValue):
                 self.pct = m['pct'] == "%"
                 if m['pct'] == "$":
                     self.value /= price
+
+
+ws: Final = r"[ \t]*" # When .+, then trim needed!
+reBuy: Final = re.compile(
+    rf"(?P<a>{Volume._re.pattern}){ws}(?P<s>[#a-zA-Z]+[\w.]*)?(?:{ws}(?(s)@?|@){ws}(?P<p>.+))?"
+)
+
+
+def parse_buy_field(value: str, field: str = 'f') -> tuple[str, str, str]:
+    match = reBuy.fullmatch(str(value).strip())
+    if not match:
+        raise ValueError(
+            f"Unable to parse '{field}' from '{value}'. Expected: {{volume}} [[{{symbol}}|@] [{{price}}]]]"
+        )
+    return match['a'], match['s'], match['p']
+
+
+def checkSet2x(value: str, values, field: str, other: str):
+    if not value:
+        return False
+    if values.get(field):
+        raise ValueError(f"'{field}' set also in '{other}'")
+    values[field] = value
+    return True
+
+
+class SendOrderRequest(BaseModel):
+    """ symbol, volume is mandatory
+    They can be filled from buy or sell also
+    """
+    buy:   str | float | None = None # In case like "buy: 1" 1 treated as float
+    sell:  str | float | None = None
+    symbol: str
+    volume: float | str
+    type:   Order_Type | None = None
+    price:  float | str | None = None
+    #TODO    stop:   float | str | None = None
+    #TODO    tp:     float | str | None = None
+    #TODO    limit:  float | str | None = None
+    #TODO    close:  float | str | None = None
+    deviation: int = 20
+    magic: int = 0
+    comment: str | None = None
+    #TODO    type_time: int = mt5.ORDER_TIME_GTC
+    #TODO    type_filling: int = mt5.ORDER_FILLING_IOC
+
+    @model_validator(mode="before")
+    @classmethod
+    def preprocess(cls, values):
+        'Split buy/sell fields if needed'
+        buy = values.get("buy")
+        sell = values.get("sell")
+        amt = values.get("volume")
+        if sum(not x for x in (buy, sell, amt)) != 2:
+            raise ValueError("One and only one of 'volume', 'buy' or 'sell' must be a non 0 number")
+        # if not buy and not sell:
+        #     raise ValueError("Either 'buy' or 'sell' is required")
+        if not amt:
+            field = buy or sell
+            other = 'buy' if buy else 'sell'
+            vol, symbol, price = parse_buy_field(field, other)
+            values["volume"] = vol if buy else '-'+vol
+            checkSet2x(symbol, values,'symbol', other)
+            checkSet2x(price, values,"price", other)
+        return values
+
+
+    def order_type_from_price(me, price: Price):
+        if not price.value:
+            if me.type and me.type != Order_Type.Market:
+                raise HTTPException(422, f"'price' is required for order type {me.type}")
+            else:
+                # TODO log defaulted to market
+                return Order_Type.Market
+        elif (not price.pre and price.pct) or price.pre == '~':
+            # TODO log type defaulted to
+            return Order_Type.TrailingStop
+        else:
+            return Order_Type.LIMIT
+
+
+    def toTradeRequest(my, actPrice: float, si: mt5.SymbolInfo, log: Logger,
+                       get_positions: Callable[[int, str], tuple[mt5.TradePosition, ...]]):
+        """ Convert to TradeRequest:
+        - `buy`/`sell` can contain: `volume` `symbol` [@] `price`
+        - One and only one of `buy`/`sell`/`volume` may be defined
+        - `volume` may be a -/+ float or %. In latter case the actual total position size
+            of the symbol needs to be reduced / increased with
+        - `price` may be a -/+ float or % or prefixes with ~.
+            - if prefixed with -/+, or % then treated as relative price
+            - if prefixed with ~ or no prefix but % then treated as trailing relative +/- price
+                depending on if volume > 0
+        Args:
+            get_positions:
+            actPrice: The actual price to calculate relative price
+            si:
+        Return:
+            TradeRequest
+        """
+        amt = Volume(my.volume, actPrice)
+
+        price = Price(my.price, amt.buy)
+
+        my.type = my.type or my.order_type_from_price(price)
+        if my.type == Order_Type.Market and price.value:
+            log.warning( f"price skipped for order type: Market")
+
+        if my.type != Order_Type.Market and not price.value:
+            price.value = actPrice
+
+        #TODO unsupported cases:
+        # vol buy: / sell -1
+        # - price > 100%
+
+        #TODO Warning when price is "too far" from last: MAX_PRICE_DEVIATION
+
+        pos_total = 0 # relative amount or sell in spot account
+        if amt.pct or (si.trade_mode == mt5.SYMBOL_TRADE_MODE_LONGONLY and not amt.buy):
+            positions = get_positions(my.magic, my.symbol)
+            pos_total = sum(p.volume for p in positions)
+            if pos_total == 0:
+                raise MT5OrderError(f"No position found for {my.symbol}")
+
+        vol = amt.abs_value(pos_total, si.volume_step, si.volume_min, si.digits)
+        if not amt.buy and vol > pos_total and si.trade_mode == mt5.SYMBOL_TRADE_MODE_LONGONLY:
+            if pos_total:
+                vol = pos_total
+                log.warning( f"volume sell {vol} adjusted to actual position size {pos_total}")
+            else:
+                raise MT5OrderError(f"No position found for {my.symbol}")
+
+        r = mt.TradeRequest(
+            action  = mt5.TRADE_ACTION_DEAL if my.type == Order_Type.Market else mt5.TRADE_ACTION_PENDING,
+            symbol  = my.symbol,
+            volume  = vol,
+            price   = price.abs_value(actPrice, si.trade_tick_size, si.trade_tick_size, si.digits)
+                                        if my.type != Order_Type.Market else 0.0,
+            type    = my.type.toMTOrderType(amt.buy).value,
+            deviation = my.deviation,
+            magic   = my.magic
+            #sl=float(r.stop) if r.stop else 0.0,
+            # tp=float(r.tp) if r.tp else 0.0,
+            # stoplimit=0.0,
+        )
+        return r

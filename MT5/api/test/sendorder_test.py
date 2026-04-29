@@ -1,8 +1,8 @@
+import logging
 from collections import namedtuple
-
 import pytest
 import re
-from app.routers.trading import parse_buy_field, Price, SendOrderRequest, Volume
+from app.models.trading import parse_buy_field, Price, SendOrderRequest, Volume
 from typing import Final, NamedTuple
 from app.models.trading import sDecRE
 import MetaTrader5 as mt5
@@ -155,9 +155,9 @@ def positions(m: int, s: str) -> tuple[mt5.TradePosition,...]:
     ({'volume':'-all', 'symbol':'AA'},
      {'volume': 2, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL}),
     ({'volume':'-100%', 'symbol':'AA'},
-      {'volume': 2, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL}),
+     {'volume': 2, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL}),
     ({'volume':'-150%', 'symbol':'AA'},
-      {'volume': 3, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL}),
+     {'volume': 3, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_SELL}),
     # Positive all (buy all)
     # ,({'buy':'+all AA'},
     #   {'volume': 1, 'symbol': 'AA', 'price': 0, 'type': mt5.ORDER_TYPE_BUY})
@@ -189,18 +189,15 @@ def positions(m: int, s: str) -> tuple[mt5.TradePosition,...]:
 ])
 def test_SendOrderRequest_toTradeRequest(prms, exp, trade_mode: int = mt5.SYMBOL_TRADE_MODE_FULL):
     """See readme.adoc /order endpoint (TradingView integration)"""
-    # r = (SendOrderRequest(**prms)
-    #      .toTradeRequest(1, mt5.SymbolInfo(SysInfo(volume_step=0.1,
-    #                                                volume_min=0.2,
-    #                                                trade_tick_size=0.01,
-    #                                                digits=2)._asdict()), positions))
+    log = logging.getLogger('TestSendOrderRequestToTradeRequest')
     for k, v in exp.items():
         r = SendOrderRequest(**prms).toTradeRequest(1,
                                                     SysInfo(volume_step=0.1,
                                                             volume_min=0.2,
                                                             trade_tick_size=0.01,
                                                             digits=2,
-                                                            trade_mode=trade_mode), positions)
+                                                            trade_mode=trade_mode),
+                                                    log, positions)
         assert getattr(r,k) == v, k
 
 class MockTradePosition(NamedTuple):

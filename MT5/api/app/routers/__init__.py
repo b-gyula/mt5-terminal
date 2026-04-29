@@ -15,17 +15,14 @@ def error_response(detail: str, http_code: int = 500) -> HTTPException:
     
     # Log the error with context
     code, msg = mt5.last_error()
-    logger.error( f"{detail} | MT5 (code: {code} : {msg} in " +
-        f"{caller_info['function']} @ {caller_info['file']}",
-        extra={
-            "caller": caller_info,
-            "mt5_code": code,
-            "mt5_message": msg,
-            "detail": detail
-        }
-    )
-    
-    return HTTPException(
-        http_code,
-        detail={"error": detail, "mt5_code": code, "mt5_msg": msg}
-    )
+
+    logger.error( detail + f" | MT5 code: {code}: {msg}" if code > 1 else '' +
+                  f" in {caller_info['function']} @ {caller_info['file']}")
+    err = {
+        "error": detail
+    }
+    if code > 1:
+        err.mt5_code = code
+        err.mt5_message = msg
+
+    return HTTPException( http_code, err )

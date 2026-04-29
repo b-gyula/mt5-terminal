@@ -3,10 +3,11 @@ import traceback
 import pandas as pd
 from datetime import datetime, timedelta
 import pytz
-from typing import Tuple, Dict, List, Optional
+from typing import Tuple
+from starlette.requests import Request
 from app.services.trade import trade_service
 from app.services.market_data import market_data_service
-from app.utils.constants import METALS, OILS, CURRENCY_PAIRS, CRYPTOCURRENCIES
+from app.utils.constants import METALS, OILS, CURRENCY_PAIRS, CRYPTOCURRENCIES, CHARSET_UTF8
 
 logger = logging.getLogger(__name__)
 TIMEZONE = pytz.UTC
@@ -28,6 +29,7 @@ def have_open_positions_in_symbol(symbol: str) -> bool:
         logger.error(f"Error in have_open_positions_in_symbol: {e}\n{traceback.format_exc()}")
         return False
 
+
 def is_market_open(symbol: str) -> bool:
     """Check if the market is currently open for a given symbol."""
     if symbol in CRYPTOCURRENCIES:
@@ -44,6 +46,7 @@ def is_market_open(symbol: str) -> bool:
         return True
     return False
 
+
 def get_price_at_pnl(desired_pnl: float, entry_price: float, order_size_usd: float, leverage: float, type: str, commission: float) -> Tuple[float, float]:
     """Calculate the target price required to reach a specific PnL."""
     if type == 'BUY':
@@ -55,6 +58,7 @@ def get_price_at_pnl(desired_pnl: float, entry_price: float, order_size_usd: flo
     else:
         raise ValueError(f"Unknown trade type: {type}")
     return price_including_commission, price_excluding_commission
+
 
 def get_pnl_at_price(current_price: float, entry_price: float, order_size_usd: float, leverage: float, type: str, commission: float) -> Tuple[float, float]:
     """Calculate the PnL at a specific price."""
@@ -69,6 +73,7 @@ def get_pnl_at_price(current_price: float, entry_price: float, order_size_usd: f
     pnl_excluding_commission = pnl_including_commission - commission
     return pnl_including_commission, pnl_excluding_commission
 
+
 def convert_lots_to_usd(symbol: str, lots: float, price_open: float) -> float:
     """Convert volume in lots to equivalent USD value."""
     symbol_info = market_data_service.get_symbol_info(symbol)
@@ -77,6 +82,7 @@ def convert_lots_to_usd(symbol: str, lots: float, price_open: float) -> float:
     
     contract_size = symbol_info.get('trade_contract_size', 100000)
     return lots * contract_size * price_open
+
 
 def convert_usd_to_lots(symbol: str, usd_amount: float, order_type: str) -> float:
     """Convert a USD amount into equivalent MetaTrader 5 lots."""
@@ -92,6 +98,7 @@ def convert_usd_to_lots(symbol: str, usd_amount: float, order_type: str) -> floa
     lots = round(lots / lot_step) * lot_step
     return lots
 
+
 def calculate_commission(order_size_usd: float, pair: str) -> float:
     """Calculate the estimated commission for a trade based on its asset class."""
     if pair in CRYPTOCURRENCIES:
@@ -103,3 +110,8 @@ def calculate_commission(order_size_usd: float, pair: str) -> float:
         commission_rate = 0.00025
     
     return order_size_usd * commission_rate
+
+
+async def raw_body(r: Request) -> str:
+    """Get original body (before possible YAML -> JSON conversion)"""
+    return getattr(r.state,'raw_body',(await r.body()).decode(CHARSET_UTF8)) # TODO get encoding from content-type header

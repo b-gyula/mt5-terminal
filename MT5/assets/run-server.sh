@@ -13,10 +13,6 @@ fi
 
 # Start the server after the auto-login script completes
 echo "Starting FastAPI Server..."
-cd $HOME
+cd $HOME/api
 # export PYTHONPATH=$PYTHONPATH:$HOME/api
-wine uv run -m app
-
-
-# CMD ["wine", "python server.py"]
-# --host ${SERVER_HOST} -p ${SERVER_PORT}
+wine $HOME/uv.exe run -m app

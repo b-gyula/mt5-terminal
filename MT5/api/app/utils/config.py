@@ -1,21 +1,15 @@
-from pydantic import field_validator, Field
+from pydantic import Field
 from typing import Any
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEV_STATE = "dev"
 class EnvSettings(BaseSettings):
-    # API Settings
-    API_NAME: str = "MetaTrader 5 API"
-    API_DESCRIPTION: str = "High-performance MT5 Trading Backend"
-    API_VERSION: str = "0.4"
-    API_DEBUG_MODE: bool = False
-    
     # Server Settings
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     ENV_STATE: str = ""
-    LOG_LEVEL: str =  "DEBUG" if ENV_STATE == DEV_STATE else "INFO"
+    LOG_LEVEL: str = "DEBUG" if ENV_STATE == DEV_STATE else "INFO"
 
     # Database Settings
     DATABASE_URL: str = "sqlite:///./data/database.db"
@@ -23,17 +17,29 @@ class EnvSettings(BaseSettings):
     # MT5 Default Credentials (loaded from ENV if available)
     MT5_ACCOUNT_NUMBER: int = Field(0, ge=0)
     MT5_PASSWORD: str = ""
-    MT5_SERVER: str 
+    MT5_SERVER: str
     TS_REFRESH_PERIOD: int = 0
     
     # Auth Settings
     API_KEY_SEED: str = ""
+
+    # Email Settings (SMTP)
+    SEND_ORDER_EMAIL: str
+    SMTP_SERVER: str = 'localhost'
+    SMTP_PORT: int  = 587
+    SMTP_USER: str
+    SMTP_PASSWD: str
+    SMTP_FROM: str
 
     # if false, error is raised when the trade price or volume is less than the minimum required
     TRADE_ROUND_UP_TO_MIN: bool = True
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 class Settings:
+    # API Settings
+    API_NAME: str = "MetaTrader 5 API"
+    API_DESCRIPTION: str = "High-performance MT5 Trading Backend"
+    API_VERSION: str = "0.5"
     def __init__(self):
         self.env = EnvSettings()
         self.base_dir = Path(__file__).resolve().parent.parent.parent

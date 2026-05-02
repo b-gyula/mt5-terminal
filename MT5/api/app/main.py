@@ -1,11 +1,11 @@
 from typing import Final
-from fastapi.exceptions import RequestValidationError
-from app.utils.config import settings, DEV_STATE
-# import logging
 from contextlib import asynccontextmanager
+from fastapi.exceptions import RequestValidationError
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from prometheus_fastapi_instrumentator import Instrumentator
+from apscheduler.schedulers.background import BackgroundScheduler
 import yaml
 import json
 from app.routers import trading, auth, account, positions, symbols, history, terminal
@@ -13,9 +13,9 @@ from app.dependencies.auth import verify_api_key
 from app.db.database import init_db
 from app.utils.exceptions import MT5BaseException
 from app.utils.logger import logger_instance
-from apscheduler.schedulers.background import BackgroundScheduler
+from app.utils import config
+from app.utils.config import env, DEV_STATE
 from app.utils.trailing import trailing_stop_handler
-from prometheus_fastapi_instrumentator import Instrumentator
 from app.utils.constants import CHARSET_UTF8
 from app.utils.helpers import raw_body
 
@@ -37,15 +37,15 @@ async def lifespan(app: FastAPI):
     init_db()
 
     # Secure API Key Generation
-    if settings.env.API_KEY_SEED:
-        logger.info(f"API Key successfully generated from seed: {settings.api_key}")
+    if env.API_KEY_SEED:
+        logger.info(f"API Key successfully generated from seed: {config.settings.api_key}")
     else:
         logger.warning("No API_KEY_SEED found! Authentication will be disabled.")
 
     # Start scheduled tasks
-    if settings.env.TS_REFRESH_PERIOD > 0:
+    if env.TS_REFRESH_PERIOD > 0:
         logger.info("Starting Background Scheduler...")
-        scheduler.add_job(trailing_stop_handler, "interval", seconds=settings.env.TS_REFRESH_PERIOD)
+        scheduler.add_job(trailing_stop_handler, "interval", seconds=env.TS_REFRESH_PERIOD)
         scheduler.start()
     else:
         logger.info("Trailing Stop is disabled. Set env TS_REFRESH_PERIOD > 0 to enable it.")
@@ -58,13 +58,12 @@ async def lifespan(app: FastAPI):
         scheduler.shutdown()
 
 
-
 def create_app() -> FastAPI:
     app = FastAPI(
-        title=settings.API_NAME,
-        description=settings.API_DESCRIPTION,
-        version=settings.API_VERSION,
-        debug=settings.env.ENV_STATE == DEV_STATE,
+        title=config.API_NAME,
+        description=config.API_DESCRIPTION,
+        version=config.API_VERSION,
+        debug=config.env.ENV_STATE == DEV_STATE,
         lifespan=lifespan
     )
 
@@ -136,7 +135,7 @@ def create_app() -> FastAPI:
     # Health Check (Internal/System)
     @app.get("/health", tags=["System"])
     def health_check():
-        return {"status": "ok", "version": settings.API_VERSION}
+        return {"status": "ok", "version": config.API_VERSION}
 
     # Auth routes (Unprotected)
     app.include_router(

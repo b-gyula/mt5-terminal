@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlmodel import Session, select
 from typing import List, Optional
 from app.db.database import get_session
@@ -11,8 +11,9 @@ from app.utils import helpers
 import MetaTrader5 as mt5
 from app.routers import error_response
 from app.utils.email import send_order_mail
-from fastapi import Request
 from app.utils.helpers import raw_body
+from app.services.connector import mt5_connector
+
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/trade", tags=["Trading"])
@@ -52,9 +53,13 @@ async def send_order(r: SendOrderRequest, req: Request): #, session: Session = D
         r: Validated request object (used for OpenAPI)
         req: Original request object used for logging
     """
-    tick: mt5.Tick = mt5_service.get_symbol_info_tick(r.symbol)
+    if r.acc:
+        mt5_connector.connect_account(r.acc)
+    acc, _ = mt5_connector.account
     si: mt5.SymbolInfo = mt5_service.get_symbol_info(r.symbol)
-    # TODO pass newly created logger to collect waring/info(s) sent in the email
+    r.symbol = si.name
+    tick: mt5.Tick = mt5_service.get_symbol_info_tick(r.symbol)
+    # TODO pass newly created logger to collect warning/info(s) sent in the email
     trade = r.toTradeRequest(tick.last if tick.last > 0 else (tick.bid+tick.ask)/2, si, log,
                                mt5_service.get_positions)
     result = mt5_service.send_order(trade)
@@ -62,7 +67,7 @@ async def send_order(r: SendOrderRequest, req: Request): #, session: Session = D
     # Send success email
     send_order_mail(await raw_body(req), trade)
     # TODO store trade like in send_market_order
-    return result._asdict() # TODO prittyfy
+    return result._asdict() # TODO prettyfy
     # except Exception as e: handled in generic exception handlers in main
     #     # Send failure email
     #     send_order_mail(body, r, e)

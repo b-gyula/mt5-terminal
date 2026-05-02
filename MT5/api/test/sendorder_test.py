@@ -1,14 +1,13 @@
 import logging
 from collections import namedtuple
+from collections.abc import Sequence
 import pytest
 import re
-from app.models.trading import parse_buy_field, Price, SendOrderRequest, Volume
+from app.models.trading import parse_buy_field, Price, SendOrderRequest, Volume,  sDecRE, Order_Type
 from typing import Final, NamedTuple
-from app.models.trading import sDecRE
 import MetaTrader5 as mt5
 from app.models import mt5 as mt
-from app.models.trading import Order_Type
-
+from app.utils.config import Account
 
 reDecimal: Final = re.compile(sDecRE)
 
@@ -18,12 +17,6 @@ reDecimal: Final = re.compile(sDecRE)
 def test_reDecimal(i: str):
     assert reDecimal.fullmatch(i) is not None
 
-# @pytest.mark.parametrize("i", [
-#     '1', '1.2', '.3'
-# ])
-# def test_ppDec(i: str):
-#     r = ppDec.parse_string(i)
-#     assert r is not None
 
 @pytest.mark.parametrize("i", [
     '1', '1.2', '.3', '.2%', 'aLl',
@@ -208,3 +201,26 @@ class MockTradePosition(NamedTuple):
     # ,({'buy':'1 AA', 'type': 's'},
     # ,({'buy':'1 AA', 'type': 't'},
     # Missing price, volume, symbol
+
+@pytest.mark.parametrize("s, pre, symb, post",[
+    ('#ADS',    '#',  'ADS', None),
+    ('ADS',     None, 'ADS', None),
+    ('#ADS.US', '#',  'ADS', '.US'),
+    ('ADS.US',  None, 'ADS', '.US'),
+    ])
+def test_reSymbol(s: str, pre: str, symb: str, post: str):
+    m = Account.reSymbol.fullmatch(s)
+    prefix, symbol, suffix = m.groups()
+    assert prefix == pre
+    assert symbol == symb
+    assert suffix == post
+
+
+@pytest.mark.parametrize("symbols, pre, post",[
+    (['#ADS', '#B.US', 'CDS', 'D.US'], {'#': {'ADS','B'}}, {'.US': {'B','D'}})
+])
+def test_Account_set_presuffixes(symbols: Sequence[str], pre: dict[str, set[str]], post: dict[str, set[str]]):
+    acc = Account(1,'')
+    acc.set_presuffixes(symbols)
+    assert dict(acc.prefix) == pre
+    assert dict(acc.suffix) == post

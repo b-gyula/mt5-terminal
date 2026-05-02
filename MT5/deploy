@@ -8,7 +8,7 @@ dest='root@gbot:~/mt/MT5'
 actTime=$(date '+%y-%m-%d_%H.%M.%S')
 [ -n "$1" ] && dest=$1
 declare -r basePrms="-thmvb --progress --log-file=$scriptDir/deploy.log --backup-dir=.bk/$actTime"
-declare -r commonPrms="$basePrms -rR --exclude __pycache__/"
+declare -r commonPrms="$basePrms -rR --exclude __pycache__/ --exclude app/__init__.py"
 cd $scriptDir
 for src in 'api/app' 'api/pyproject.toml' assets compose.yml Dockerfile; do
 	rsync $commonPrms -b $src $dest

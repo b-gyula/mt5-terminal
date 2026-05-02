@@ -1,8 +1,8 @@
 from sqlmodel import create_engine, Session, SQLModel
 from sqlalchemy.orm import sessionmaker
-from app.utils.config import settings
+from app.utils.config import env
 
-engine = create_engine(settings.env.DATABASE_URL, echo=True)
+engine = create_engine(env.DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=Session)
 
 def init_db():

@@ -1,16 +1,16 @@
 from re import Match
 from typing import Optional, Final, override
 from fastapi import HTTPException
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, BaseModel, model_validator
 from enum import StrEnum
-from app.models.mt5 import OrderType
-from app.utils.config import settings
-from pydantic import BaseModel, model_validator
-from app.models import mt5 as mt
-from collections.abc import Callable
-from app.utils.exceptions import MT5OrderError
 import MetaTrader5 as mt5
 from logging import Logger
+from collections.abc import Callable
+from app.models.mt5 import OrderType
+from app.models import mt5 as mt
+from app.utils.exceptions import MT5OrderError
+from app.utils.config import env
+
 
 class MarketOrderRequest(BaseModel):
     symbol: str
@@ -96,7 +96,7 @@ class MayBeRelativeValue:
     value: float = 0.0
     pre: str = ""
     o_value: str
-    _re: re.Pattern
+    re: re.Pattern
     _expected: str
     @property
     def relative(self)-> bool:
@@ -113,7 +113,7 @@ class MayBeRelativeValue:
             v += abs_total
         v = round(round(abs(v) / step) * step, digits)
         if v < min:
-            if settings.env.TRADE_ROUND_UP_TO_MIN:
+            if env.TRADE_ROUND_UP_TO_MIN:
                 v = min
             else:
                 raise ValueError(f"{self.__class__.__name__} {self.o_value} rounded to {v} must be > {min}")
@@ -125,19 +125,19 @@ class MayBeRelativeValue:
             if type(v) == float:
                 self.value = v
             elif type(v) == str:
-                m: Final[re.Match] = self._re.fullmatch(v)
+                m: Final[re.Match] = self.re.fullmatch(v)
                 if not m:
                     raise ValueError(
                         f"Unable to parse '{self.__class__.__name__}' from '{v}'. Expected: {self._expected}"
                     )
                 return m
 
-sDecRE: Final[str] = r"\d*\.?\d+" # decimal number allowing absence of 0
 
+sDecRE: Final[str] = r"\d*\.?\d+" # decimal number allowing absence of 0
 
 # @dataclass(frozen=True)
 class Price(MayBeRelativeValue):
-    _re: Final = re.compile(rf"([+-]|~)?({sDecRE})(%)?")
+    re: Final = re.compile(rf"([+-]|~)?({sDecRE})(%)?")
     _expected: Final[str] = '[+|-]|[~]{decimal}[%]'
     def __init__(self, s: float | str | None, long: bool):
         m: Final[re.Match] = self.init(s)
@@ -161,7 +161,7 @@ class Price(MayBeRelativeValue):
 
 
 class Volume(MayBeRelativeValue):
-    _re: Final = re.compile(rf"([+-]?{sDecRE})(?P<pct>[%$])?|(?P<all>-?[aA][lL][lL])")
+    re: Final = re.compile(rf"([+-]?{sDecRE})(?P<pct>[%$])?|(?P<all>-?[aA][lL][lL])")
     _expected: Final = '[+|-]{{decimal}}[%]|all'
     quote: bool = False
     @property
@@ -183,7 +183,7 @@ class Volume(MayBeRelativeValue):
 
 ws: Final = r"[ \t]*" # When .+, then trim needed!
 reBuy: Final = re.compile(
-    rf"(?P<a>{Volume._re.pattern}){ws}(?P<s>[#a-zA-Z]+[\w.]*)?(?:{ws}(?(s)@?|@){ws}(?P<p>.+))?"
+    rf"(?P<a>{Volume.re.pattern}){ws}(?P<s>[#a-zA-Z]+[\w.]*)?(?:{ws}(?(s)@?|@){ws}(?P<p>.+))?"
 )
 
 
@@ -213,6 +213,7 @@ class SendOrderRequest(BaseModel):
     sell:  str | float | None = None
     symbol: str
     volume: float | str
+    acc:    str | None = None
     type:   Order_Type | None = None
     price:  float | str | None = None
     #TODO    stop:   float | str | None = None

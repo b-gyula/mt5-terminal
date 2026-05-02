@@ -1,14 +1,11 @@
 import logging
 import smtplib
 from email.message import EmailMessage
-
 from fastapi.exceptions import RequestValidationError
-
-from app.utils.config import settings
+from app.utils.config import env
 from app.models import mt5 as mt
 
 logger = logging.getLogger(__name__)
-
 
 def subject(r: mt.TradeRequest) -> str:
     return f"{mt.OrderType(r.type).name} {r.volume} {r.symbol} @ {r.price}"
@@ -44,17 +41,17 @@ def send_mail(
     Returns:
         bool: True if email sent successfully, False otherwise
     """
-    recipient   = settings.env.SEND_ORDER_EMAIL
-    smtp_server = settings.env.SMTP_SERVER
-    smtp_port   = settings.env.SMTP_PORT
-    smtp_user   = settings.env.SMTP_USER
-    smtp_passwd = settings.env.SMTP_PASSWD
+    recipient   = env.SEND_ORDER_TO
+    smtp_server = env.SMTP_SERVER
+    smtp_port   = env.SMTP_PORT
+    smtp_user   = env.SMTP_USER
+    smtp_passwd = env.SMTP_PASSWD
 
     body = f"{subject}\nFrom:\n\n{request}"
 
     msg = EmailMessage()
     msg['Subject'] = subject
-    msg['From'] = settings.env.SMTP_FROM
+    msg['From'] = env.SMTP_FROM
     msg['To'] = recipient
     msg.set_content(body)
 

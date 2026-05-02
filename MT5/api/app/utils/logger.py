@@ -1,6 +1,6 @@
 import logging
 import sys
-from app.utils.config import settings
+from app.utils.config import env, settings
 
 class LoggerInstance:
     def __init__(self, name="app"):
@@ -9,7 +9,7 @@ class LoggerInstance:
 
         self.logger = logging.getLogger(name)
         self.logger.setLevel(
-            getattr(logging, settings.env.LOG_LEVEL.upper(), logging.INFO)
+            getattr(logging, env.LOG_LEVEL.upper(), logging.INFO)
         )
 
         if not self.logger.handlers:

@@ -19,9 +19,7 @@ ENV HOME=/root \
     WINEDEBUG=-all
 
 # MT5 Account Details (Provide at runtime)
-ENV MT5_PATH="${WINEPREFIX}/drive_c/mt5/terminal64.exe" \
-    MT_ACCOUNT_NUMBER=0 \
-    MT5_SERVER=''
+ENV MT5_PATH="${WINEPREFIX}/drive_c/mt5/terminal64.exe"
 
 # Install system dependencies, WineHQ and clean up in a single layer
 RUN apt-get update && \

@@ -49,19 +49,19 @@ def create_trade(trade_data: TradeBase, session: Session = Depends(get_session))
 @router.post("/order", status_code=status.HTTP_201_CREATED)
 async def send_order(r: SendOrderRequest, req: Request): #, session: Session = Depends(get_session)):
     """ Create an order
+    req: Original request object used for logging
     Args:
-        r: Validated request object (used for OpenAPI)
-        req: Original request object used for logging
+        r:   Validated request object (used for OpenAPI)
     """
     if r.acc:
         mt5_connector.connect_account(r.acc)
     acc, _ = mt5_connector.account
     si: mt5.SymbolInfo = mt5_service.get_symbol_info(r.symbol)
     r.symbol = si.name
-    tick: mt5.Tick = mt5_service.get_symbol_info_tick(r.symbol)
+    ticks: list[dict] = mt5_service.copy_rates_from_pos(r.symbol)
+    tick = ticks[0]
     # TODO pass newly created logger to collect warning/info(s) sent in the email
-    trade = r.toTradeRequest(tick.last if tick.last > 0 else (tick.bid+tick.ask)/2, si, log,
-                               mt5_service.get_positions)
+    trade = r.toTradeRequest(tick['close'], si, log, mt5_service.get_positions)
     result = mt5_service.send_order(trade)
 
     # Send success email

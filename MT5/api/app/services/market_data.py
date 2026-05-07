@@ -2,6 +2,8 @@ import MetaTrader5 as mt5
 import pandas as pd
 from datetime import datetime
 from typing import Optional, List, Dict
+
+from app.utils.exceptions import MT5RateError
 from .connector import mt5_connector
 from app.models import mt5 as mt
 from app.utils.exceptions import MT5SymbolNotFoundError
@@ -41,13 +43,14 @@ class MarketDataService:
         mt5_connector.initialize()
         info: mt5.SymbolInfo = mt5.symbol_info(symbol)
         if not info:
-            raise MT5SymbolNotFoundError(f"Symbol '{symbol}' not found.")
+            raise MT5SymbolNotFoundError(f"Symbol '{symbol}' not found")
 
         cache_manager.set(cache_key, info, ttl=300)  # Symbol info changes rarely
         return info
 
 
     def get_symbol_info_tick(self, symbol: str) -> mt5.Tick:
+        """ Warning: works only for symbols selected in the terminal!!!"""
         cache_key = f"symbol_tick_{symbol}"
         cached_tick = cache_manager.get(cache_key)
         if cached_tick:
@@ -56,20 +59,25 @@ class MarketDataService:
         mt5_connector.initialize()
         tick: mt5.Tick = mt5.symbol_info_tick(symbol)
         if not tick:
-            raise MT5SymbolNotFoundError(f"Tick data for '{symbol}' not found.")
+            raise MT5SymbolNotFoundError(f"Tick data for '{symbol}' not found")
 
         cache_manager.set(cache_key, tick, ttl=1)  # Tick data changes frequently
         return tick
 
 
-    def copy_rates_from_pos(self, symbol: str, timeframe: str, start_pos: int, count: int) -> Optional[List[Dict]]:
+    def copy_rates_from_pos(self, symbol: str, timeframe: str, count: int, start_pos: int = 0) -> Optional[List[Dict]]:
+        """https://www.mql5.com/en/docs/python_metatrader5/mt5copyratesfrompos_py
+        :returns array of dict containing: time, open, high, low, close, tick_volume, spread and real_volume
+        """
         if not mt5_connector.initialize(): return None
         mt5_timeframe = self.get_timeframe(timeframe)
         rates = mt5.copy_rates_from_pos(symbol, mt5_timeframe, start_pos, count)
-        if rates is None: return None
+        if rates is None:
+            raise MT5RateError(f"Rate data for symbol '{symbol}' {timeframe} not found")
         df = pd.DataFrame(rates)
         df['time'] = pd.to_datetime(df['time'], unit='s')
         return df.to_dict(orient='records')
+
 
     def copy_rates_range(self, symbol: str, timeframe: str, start: datetime, end: datetime) -> Optional[List[Dict]]:
         if not mt5_connector.initialize(): return None

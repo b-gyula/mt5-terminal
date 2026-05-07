@@ -20,21 +20,21 @@ Parameters:
 // If `?` added after = reduceOnly: true
 | *_buy /sell_* | string | The (positive) amount to buy / sell. Only one of them can be used instead of `amt`
 
-Can contain pair and price also in the format *{volume} {pair} [@] {price}*
+Can contain symbol and price also in the format *{volume} {symbol} [@] {price}*
 
 {volume} can be::
 
 - a positive decimal number. see `volume` for more details
 
-{pair}:: see `pair`
+{symbol}:: see `symbol`
 
 {price}:: see `price` for details
-| pair | string | The asset pair to create order for in the form: {asset}[{quote}] +
-Notes::
-- _If set, {pair} in buy / sell is ignored_
+| symbol | string | The asset symbol to create order for. Named account configuration can define pre and
+suffix
+
 | price
 //| [+\|-\|~] decimal [%]
-| [[!][+\|-]\|~] decimal [%]
+| [[+\|-]\|~] decimal [%]
 | The limit (just numbers and `.`) or offset price (`+` or `-` in front of the number) for the order. +
 _If not set and {type} not `market` (or omitted) then the latest price is used_
 | type   | string
@@ -45,9 +45,9 @@ If not defined, then it's taken from the *{price}*: +
 //- _post limit_ if {price} is prefixed with `!` +
 - _trailing stop_ if {price} is prefixed with `~` or %
 - _market_ if none of above
+| account | string | The name of the account to place the order in
 // *TODO* close
 //| limit | decimal | limit price for  *TODO*
-//| lever | int | Spot margin leverage. If 0 (or omitted) -> spot order
 //| reduceOnly | boolean | use the actual position size instead of amount if the given amount is more than the position
 |===
 Notes::

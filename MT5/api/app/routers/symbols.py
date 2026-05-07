@@ -38,9 +38,9 @@ def get_symbol_tick(symbol: str):
 
 
 @router.get("/rates/pos")
-def fetch_data_pos(symbol: str, timeframe: str = "M1", num_bars: int = 100):
+def fetch_data_pos(symbol: str, timeframe: str = "M1", num_bars: int = 10):
     try:
-        return mt5_service.copy_rates_from_pos(symbol, timeframe, 0, num_bars)
+        return mt5_service.copy_rates_from_pos(symbol, timeframe, num_bars)
     except Exception as e:
         raise error_response(f"Error fetching rates: {str(e)}")
 

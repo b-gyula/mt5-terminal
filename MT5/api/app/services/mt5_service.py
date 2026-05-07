@@ -68,8 +68,8 @@ class MT5Service:
         return trade_service.close_all_positions(*args, **kwargs)
 
 
-    def copy_rates_from_pos(self, *args, **kwargs):
-        return market_data_service.copy_rates_from_pos(*args, **kwargs)
+    def copy_rates_from_pos(self, symbol: str, timeframe: str = "M1", num_bars: int = 1, start_pos: int = 0):
+        return market_data_service.copy_rates_from_pos(symbol, timeframe, num_bars, start_pos)
 
 
     def copy_rates_range(self, *args, **kwargs):

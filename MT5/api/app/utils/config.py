@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # API Settings
 API_NAME: Final[str] = "MetaTrader 5 API"
-API_VERSION: Final[str] = "0.6"
+API_VERSION: Final[str] = "0.7"
 API_DESCRIPTION: Final[str] = "High-performance MT5 Trading Backend"
 
 DEV_STATE: Final = "dev"
@@ -76,7 +76,7 @@ class Account:
     def symbol(self, s: str) -> str:
         return lookup(s, self.prefix) + s + lookup(s, self.suffix)
 
-    alnum: ClassVar[Final] = 'a-zA-Z0-9'
+    alnum: Final[ClassVar[str]] = 'a-zA-Z0-9'
 
     reSymbol: ClassVar[Final] = re.compile(rf'(?P<pre>[^{alnum}]+)?(?P<symb>[{alnum}]+)(?P<post>[^{alnum}]+.*)?')
 

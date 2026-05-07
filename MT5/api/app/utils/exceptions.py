@@ -18,3 +18,6 @@ class MT5SymbolNotFoundError(MT5BaseException):
 
 class MT5RateLimitError(MT5BaseException):
     pass
+
+class MT5RateError(MT5BaseException):
+    pass

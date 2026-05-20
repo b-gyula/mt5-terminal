@@ -163,29 +163,6 @@ class OrderFilling(IntEnum):
     RETURN = mt5.ORDER_FILLING_RETURN
     BOC = mt5.ORDER_FILLING_BOC
 
-#
-# class TradePosition(NamedTuple):
-#     ticket: int
-#     time: int
-#     time_msc: int
-#     time_update: int
-#     time_update_msc: int
-#     type: int
-#     magic: int
-#     identifier: int
-#     reason: int
-#     volume: float
-#     price_open: float
-#     sl: float
-#     tp: float
-#     price_current: float
-#     swap: float
-#     profit: float
-#     symbol: str
-#     comment: str
-#     external_id: str
-
-
 class OrderTime(IntEnum):
     'https://www.mql5.com/en/docs/constants/tradingconstants/orderproperties#enum_order_type_time'
     GTC = mt5.ORDER_TIME_GTC    # Good till cancel order
@@ -203,19 +180,19 @@ class TradeRequest:
    volume: float        # Requested volume for a deal in lots
    type: int            # Order type
 #TODO type_time: int = mt5.ORDER_TIME_GTC # Order expiration type
-#TODO type_filling: int = 0 # Order execution type https://www.mql5.com/en/docs/constants/tradingconstants/orderproperties#enum_order_type_filling
    price: float   # Price
    action: int   # Trade operation type https://www.mql5.com/en/docs/python_metatrader5/mt5ordercheck_py#trade_request_actions
    deviation: int       # Maximal possible deviation from the requested price
 #   stoplimit: float | None = None # StopLimit level of the order
 #   sl: float | None = None     # Stop Loss level of the order
+#   type_filling: int = mt5.ORDER_FILLING_RETURN # Order execution type https://www.mql5.com/en/docs/constants/tradingconstants/orderproperties#enum_order_type_filling
    tp: float = 0.0     # Take Profit level of the order
-   #datetime                      expiration;       # Order expiration time (for the orders of ORDER_TIME_SPECIFIED type)
-   comment: str = ''       # Order comment
+   #datetime    expiration;       # Order expiration time (for the orders of ORDER_TIME_SPECIFIED type)
+   comment: str = ''     # Order comment
    #order: int           # Order ticket
-   #ulong                         position;         # Position ticket
-   #ulong                         position_by;      # The ticket of an opposite position
-   magic: int  = 0         # Expert Advisor ID (magic number)
+   position: int = 0     # Position ticket
+   position_by: int = 0  # The ticket of an opposite position
+   magic: int  = 0       # Expert Advisor ID (magic number)
 
 TrdRequest = namedtuple(
     'TrdRequest', mt5.TradeRequest.__match_args__ )

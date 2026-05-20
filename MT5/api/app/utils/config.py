@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # API Settings
 API_NAME: Final[str] = "MetaTrader 5 API"
-API_VERSION: Final[str] = "0.7"
+API_VERSION: Final[str] = "0.8"
 API_DESCRIPTION: Final[str] = "High-performance MT5 Trading Backend"
 
 DEV_STATE: Final = "dev"
@@ -72,7 +72,7 @@ class Account:
     server: str = env.MT5_SERVER
     prefix: tuple[tuple[str, set[str]]] | None = None
     suffix: tuple[tuple[str, set[str]]] | None = None
-    #TODO force_netting: bool = True
+    force_netting: bool = True
     def symbol(self, s: str) -> str:
         return lookup(s, self.prefix) + s + lookup(s, self.suffix)
 

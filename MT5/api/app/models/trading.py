@@ -262,7 +262,8 @@ class SendOrderRequest(BaseModel):
 
 
     def toTradeRequest(my, actPrice: float, si: mt5.SymbolInfo, log: Logger,
-                       get_positions: Callable[[int, str], tuple[mt5.TradePosition, ...]]):
+                       get_positions: Callable[[int, str], tuple[mt5.TradePosition, ...]]) \
+            -> mt5.TradeRequest:
         """ Convert to TradeRequest:
         - `buy`/`sell` can contain: `volume` `symbol` [@] `price`
         - One and only one of `buy`/`sell`/`volume` may be defined
@@ -301,9 +302,10 @@ class SendOrderRequest(BaseModel):
             positions = get_positions(my.magic, my.symbol)
             pos_total = sum(p.volume for p in positions)
             if pos_total == 0:
-                raise MT5OrderError(f"No position found for {my.symbol}")
+                raise MT5OrderError(f"No position found for {my.symbol} with trade mode: long only")
 
         vol = amt.abs_value(pos_total, si.volume_step, si.volume_min, si.digits)
+        # If sell and long only => correct amt to actual position if needed
         if not amt.buy and vol > pos_total and si.trade_mode == mt5.SYMBOL_TRADE_MODE_LONGONLY:
             if pos_total:
                 vol = pos_total

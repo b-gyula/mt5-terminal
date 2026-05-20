@@ -62,16 +62,38 @@ async def send_order(r: SendOrderRequest, req: Request): #, session: Session = D
     tick = ticks[0]
     # TODO pass newly created logger to collect warning/info(s) sent in the email
     trade = r.toTradeRequest(tick['close'], si, log, mt5_service.get_positions)
-    result = mt5_service.send_order(trade)
+
+    results = []
+    if acc.force_netting: # Close opposite positions
+        results = close_positions(trade)
+
+    if trade.volume > 0:
+        results.append( mt5_service.send_order(trade) )
 
     # Send success email
     send_order_mail(await raw_body(req), trade)
     # TODO store trade like in send_market_order
-    return result._asdict() # TODO prettyfy
+    return [str(result) for result in results]# TODO prettyfy
     # except Exception as e: handled in generic exception handlers in main
     #     # Send failure email
     #     send_order_mail(body, r, e)
     #     raise error_response(f"Error sending order: {str(e)}")
+
+
+from app.models import mt5 as mt
+def close_positions(trade: mt.TradeRequest):
+    # Get the position created by this request
+    positions = mt5_service.get_positions(trade.magic, trade.symbol)
+    results = []
+    for pos in positions: # TODO sort by time / profit
+        # trade.type += -1 if trade.type % 2 > 0 else 1 # opposite side
+        if trade.volume > 0 and pos.type != trade.type % 2: # pos.type =0 long / 1 short
+            t = trade.__replace__(position = pos.ticket,
+                                  # position_by = result.order,
+                                  volume = min(pos.volume, trade.volume))
+            results.append ( mt5_service.send_order(t))
+            trade.volume -= t.volume # track how much needed to be closed
+    return results
 
 
 @router.post("/order/market", status_code=status.HTTP_201_CREATED)

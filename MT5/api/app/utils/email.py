@@ -7,8 +7,8 @@ from app.models import mt5 as mt
 
 logger = logging.getLogger(__name__)
 
-def subject(r: mt.TradeRequest) -> str:
-    return f"{mt.OrderType(r.type).name} {r.volume} {r.symbol} @ {r.price}"
+def subject(r: mt.TradeRequest | None) -> str:
+    return f"{mt.OrderType(r.type).name} {r.volume} {r.symbol} @ {r.price}" if r else "order"
 
 
 def ex2subject(ex: Exception) -> str:
@@ -20,7 +20,7 @@ def ex2subject(ex: Exception) -> str:
 
 def send_order_mail(request: str, r: mt.TradeRequest | None, ex: Exception | None = None):
     if ex: # TODO for validation error format all errors()
-        send_mail(f'Unable to create order: {ex2subject(ex)}', request, str(ex))
+        send_mail(f'Unable to create {subject(r)}: {ex2subject(ex)}', request, str(ex))
     else:
         send_mail(f"Order created {subject(r)}", request)
 

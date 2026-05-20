@@ -74,9 +74,8 @@ class MT5Connector:
                 (acc and acc.login != act.login):
             if acc :
                 self.connect(acc.login, acc.passwd, acc.server, a_name)
-                _act_account = a_name
             else:
-                _act_account = None
+                self._act_account = None
                 raise Exception(f"Account {a_name} not found")
         return acc
 
@@ -89,6 +88,7 @@ class MT5Connector:
         if success:
             logger.info(f"MT5 connected to %s login: {login}", f"account: '{a_name}'" if a_name else '' )
             self._initialized = True
+            self._act_account = a_name
             return True
         else:
             raise MT5ConnectionError(f"MT5 connect to login: {login} failed")
